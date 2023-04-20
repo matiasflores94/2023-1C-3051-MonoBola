@@ -44,6 +44,10 @@ namespace TGC.MonoGame.TP
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
         private Effect Effect { get; set; }
+        private Model BodyModel { get; set; }
+        private Matrix BodyWorld { get; set; }
+        private Model GrassModel { get; set; }
+        private Matrix GrassWorld { get; set; }
         private Matrix FloorWorld { get; set; }
         private QuadPrimitive Quad { get; set; }
         private Matrix WallWorld { get; set; }
@@ -80,6 +84,8 @@ namespace TGC.MonoGame.TP
             SpherePosition = new Vector3(0, 5, 0);
             SphereRotation = Matrix.Identity;
 
+            BodyWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(20f,20f,20f);
+            GrassWorld = Matrix.Identity;
             FloorWorld = Matrix.CreateScale(200f);
             WallWorld = Matrix.CreateScale(100f) * Matrix.CreateRotationZ(MathHelper.PiOver2) * Matrix.CreateTranslation(100f, 0f, 0f);
 
@@ -94,6 +100,8 @@ namespace TGC.MonoGame.TP
         protected override void LoadContent()
         {
             // Aca es donde deberiamos cargar todos los contenido necesarios antes de iniciar el juego.
+            BodyModel = Content.Load<Model>(ContentFolder3D + "body/First");
+            //GrassModel = Content.Load<Model>(ContentFolder3D + "Grass/Grass"); no deja
 
             // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
@@ -192,6 +200,9 @@ namespace TGC.MonoGame.TP
             DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
             Quad.Draw(FloorWorld, Camera.View, Camera.Projection);
             QuadWall.Draw(WallWorld, Camera.View, Camera.Projection);
+            BodyModel.Draw(BodyWorld, Camera.View, Camera.Projection);
+            BodyModel.Draw(BodyWorld*Matrix.CreateTranslation(-50f,0f,-50f), Camera.View, Camera.Projection);
+            //GrassModel.Draw(GrassWorld, Camera.View, Camera.Projection);
 
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
             /*Effect.Parameters["View"].SetValue(Camera.View);
@@ -199,13 +210,14 @@ namespace TGC.MonoGame.TP
             Effect.Parameters["DiffuseColor"].SetValue(Color.DarkBlue.ToVector3());*/
             //var rotationMatrix = Matrix.CreateRotationY(Rotation);
 
-/*            foreach (var mesh in Model.Meshes)
-            {
-                World = mesh.ParentBone.Transform * rotationMatrix;
-                Effect.Parameters["World"].SetValue(World);
-                mesh.Draw();
-            }
-*/        }
+            /*            foreach (var mesh in Model.Meshes)
+                        {
+                            World = mesh.ParentBone.Transform * rotationMatrix;
+                            Effect.Parameters["World"].SetValue(World);
+                            mesh.Draw();
+                        }
+            */
+        }
 
         /// <summary>
         ///     Libero los recursos que se cargaron en el juego.
