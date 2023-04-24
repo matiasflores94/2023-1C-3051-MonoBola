@@ -47,10 +47,16 @@ namespace TGC.MonoGame.TP
        
         private Model BodyModel { get; set; }
         private Matrix BodyWorld { get; set; }
+        private Model BallModel { get; set; }
+        private Matrix BallWorld { get; set; }
+        private Model BoyModel { get; set; }
+        private Matrix BoyWorld { get; set; }
         private Model  TreeModel{ get; set; }
         private Matrix TreeWorld { get; set; }
         private Model  PathModel{ get; set; }
         private Matrix PathWorld { get; set; }
+        private Model  MonumentModel{ get; set; }
+        private Matrix MonumentWorld { get; set; }
         private Model  BenchModel{ get; set; }
         private Matrix BenchWorld { get;set;}
         private Model  Tree2Model{ get; set; }
@@ -106,10 +112,13 @@ namespace TGC.MonoGame.TP
             SphereRotation = Matrix.Identity;
 
             BodyWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(20f,20f,20f);
+            BoyWorld = Matrix.Identity;
+            BallWorld = Matrix.Identity;
             GrassWorld = Matrix.Identity;
             FloorWorld = Matrix.CreateScale(200f);
             WallWorld = Matrix.CreateScale(100f) * Matrix.CreateRotationZ(MathHelper.PiOver2) * Matrix.CreateTranslation(100f, 0f, 0f);
             TreeWorld = Matrix.Identity;
+            MonumentWorld = Matrix.Identity;
             DogWorld = Matrix.Identity;
             BridgeWorld = Matrix.Identity;
             Tree2World = Matrix.Identity;
@@ -132,12 +141,15 @@ namespace TGC.MonoGame.TP
         {
             // Aca es donde deberiamos cargar todos los contenido necesarios antes de iniciar el juego.
             BodyModel = Content.Load<Model>(ContentFolder3D + "body/First");
+            BoyModel = Content.Load<Model>(ContentFolder3D + "boy/uploads_files_2017656_body_1");
+            BallModel = Content.Load<Model>(ContentFolder3D + "ball/uploads_files_910532_soccer-ball");
             GrassModel = Content.Load<Model>(ContentFolder3D + "grass/grass");
             TreeModel = Content.Load<Model>(ContentFolder3D + "tree/Tree");
             Tree1Model = Content.Load<Model>(ContentFolder3D + "tree2/Tree");
             DogModel = Content.Load<Model>(ContentFolder3D + "dog/GermanShephardLowPoly");
             Tree2Model = Content.Load<Model>(ContentFolder3D + "tree3/Lowpoly_tree_sample");
             BridgeModel = Content.Load<Model>(ContentFolder3D + "bridge/uploads_files_4132388_WoodBridge");
+            MonumentModel = Content.Load<Model>(ContentFolder3D + "monument/uploads_files_2609414_Temple_F");
             StarModel = Content.Load<Model>(ContentFolder3D + "star/Gold_Star");
             BenchModel = Content.Load<Model>(ContentFolder3D + "bench/uploads_files_3982311_Bench");
             PathModel = Content.Load<Model>(ContentFolder3D + "path/cobblestone lowpoly");
@@ -160,6 +172,27 @@ namespace TGC.MonoGame.TP
             }
 
             foreach (var mesh in BodyModel.Meshes)
+            {
+                foreach (var meshPart in mesh.MeshParts)
+                {
+                    meshPart.Effect = Effect;
+                }
+            }
+            foreach (var mesh in MonumentModel.Meshes)
+            {
+                foreach (var meshPart in mesh.MeshParts)
+                {
+                    meshPart.Effect = Effect;
+                }
+            }
+            foreach (var mesh in BoyModel.Meshes)
+            {
+                foreach (var meshPart in mesh.MeshParts)
+                {
+                    meshPart.Effect = Effect;
+                }
+            }
+            foreach (var mesh in BallModel.Meshes)
             {
                 foreach (var meshPart in mesh.MeshParts)
                 {
@@ -374,6 +407,24 @@ namespace TGC.MonoGame.TP
                     
                 }
             }
+            Effect.Parameters["DiffuseColor"].SetValue(Color.Silver.ToVector3());
+            foreach (var mesh in MonumentModel.Meshes)
+            {
+                MonumentWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(MonumentWorld *Matrix.CreateRotationY(MathHelper.PiOver2)* Matrix.CreateScale(1f)  * Matrix.CreateTranslation(400f,6f,-700f));
+                mesh.Draw();
+            }
+            Effect.Parameters["DiffuseColor"].SetValue(Color.Black.ToVector3());
+            for (float j=0; j<5; j++){  
+            for (float i=0; i<2; i++){  
+            foreach (var mesh in BallModel.Meshes)
+            {
+                BallWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(BallWorld *Matrix.CreateRotationY(MathHelper.PiOver2)* Matrix.CreateScale(0.5f)  * Matrix.CreateTranslation(i*100f+350f,12f,0f + j*-100f));
+                mesh.Draw();
+            }
+            }
+            }
             Effect.Parameters["DiffuseColor"].SetValue(Color.LightPink.ToVector3());     
 
                 foreach (var mesh in BodyModel.Meshes)
@@ -388,22 +439,29 @@ namespace TGC.MonoGame.TP
                     BodyWorld = mesh.ParentBone.Transform;
                     Effect.Parameters["World"].SetValue(BodyWorld * Matrix.CreateScale(0.6f) * Matrix.CreateTranslation(200f,150f,-100f));
                     mesh.Draw();
-                }                Effect.Parameters["DiffuseColor"].SetValue(Color.Red.ToVector3());     
+                }
+                foreach (var mesh in BoyModel.Meshes)
+                {
+                    BoyWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(BoyWorld * Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f,8f,-500f));
+                    mesh.Draw();
+                }       
+            Effect.Parameters["DiffuseColor"].SetValue(Color.LimeGreen.ToVector3());     
 
-            for (float i=0; i<10; i++){
+            for (float i=0; i<20; i++){
                 foreach (var mesh in TreeModel.Meshes)
                 {
                     TreeWorld = mesh.ParentBone.Transform;
-                    Effect.Parameters["World"].SetValue(TreeWorld * Matrix.CreateScale(0.08f) * Matrix.CreateTranslation(0f,0f,i*10f+40f));
+                    Effect.Parameters["World"].SetValue(TreeWorld * Matrix.CreateScale(0.08f) * Matrix.CreateTranslation(300f,8f,i*-40f+100f));
                     mesh.Draw();
                 }
             }
 
-            for (float i=0; i<10; i++){
+            for (float i=0; i<20; i++){
                 foreach (var mesh in Tree1Model.Meshes)
                 {
                     Tree1World = mesh.ParentBone.Transform;
-                    Effect.Parameters["World"].SetValue(Tree1World * Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(25f,0f,i*10f+40f));
+                    Effect.Parameters["World"].SetValue(Tree1World * Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(510f,8f,i*-40f+100f));
                     mesh.Draw();
                 }
             }
@@ -442,7 +500,7 @@ namespace TGC.MonoGame.TP
                 foreach (var mesh in StarModel.Meshes)
                 {
                     StarWorld = mesh.ParentBone.Transform;
-                    Effect.Parameters["World"].SetValue(StarWorld * Matrix.CreateScale(1f) *Matrix.CreateRotationY(MathHelper.PiOver2)* Matrix.CreateTranslation(400f,20f,-100f));
+                    Effect.Parameters["World"].SetValue(StarWorld * Matrix.CreateScale(1f) *Matrix.CreateRotationY(MathHelper.PiOver2)* Matrix.CreateTranslation(400f,20f,i*-100f));
                     mesh.Draw();
                 }
             }
