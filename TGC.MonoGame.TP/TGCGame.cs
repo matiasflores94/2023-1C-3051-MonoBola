@@ -65,6 +65,10 @@ namespace TGC.MonoGame.TP
         private Model StarModel { get; set; }
         private Matrix StarWorld { get; set; }
         private Matrix FloorWorld { get; set; }
+        private Model SlideModel { get; set; }
+        private Matrix SlideWorld { get; set; }
+        private Model BikeModel { get; set; }
+        private Matrix BikeWorld { get; set; }
         private QuadPrimitive Quad { get; set; }
         private Matrix WallWorld { get; set; }
         private QuadPrimitive QuadWall { get; set; }
@@ -112,6 +116,8 @@ namespace TGC.MonoGame.TP
             StarWorld = Matrix.Identity;
             BenchWorld = Matrix.Identity;
             PathWorld = Matrix.Identity;
+            SlideWorld = Matrix.Identity;
+            BikeWorld = Matrix.Identity;
 
             base.Initialize();
         }
@@ -134,8 +140,8 @@ namespace TGC.MonoGame.TP
             StarModel = Content.Load<Model>(ContentFolder3D + "star/Gold_Star");
             BenchModel = Content.Load<Model>(ContentFolder3D + "bench/uploads_files_3982311_Bench");
             PathModel = Content.Load<Model>(ContentFolder3D + "path/cobblestone lowpoly");
-
-
+            SlideModel = Content.Load<Model>(ContentFolder3D + "slide/Hill");
+            BikeModel = Content.Load<Model>(ContentFolder3D + "bike/Bicicle");
 
             // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
@@ -212,6 +218,21 @@ namespace TGC.MonoGame.TP
                    meshPart.Effect = Effect;
                }
            }
+           foreach (var mesh in SlideModel.Meshes)
+           {
+               foreach (var meshPart in mesh.MeshParts)
+               {
+                   meshPart.Effect = Effect;
+               }
+           }
+           foreach (var mesh in BikeModel.Meshes)
+           {
+               foreach (var meshPart in mesh.MeshParts)
+               {
+                   meshPart.Effect = Effect;
+               }
+           }
+           
             base.LoadContent();
         }
 
@@ -307,7 +328,8 @@ namespace TGC.MonoGame.TP
             Effect.Parameters["View"].SetValue(Camera.View);
             Effect.Parameters["Projection"].SetValue(Camera.Projection);
             Effect.Parameters["DiffuseColor"].SetValue(Color.DarkGreen.ToVector3());
-            for (float i = 0; i < 5;i++)
+            
+            for (float i = 0; i < 10;i++)
             {
                 foreach (var mesh in GrassModel.Meshes)
                 {
@@ -316,7 +338,7 @@ namespace TGC.MonoGame.TP
                     mesh.Draw();
                 }
             }
-            for (float i = 0; i < 5;i++)
+            for (float i = 0; i < 10;i++)
             {
                 foreach (var mesh in GrassModel.Meshes)
                 {
@@ -325,63 +347,99 @@ namespace TGC.MonoGame.TP
                     mesh.Draw();
                 }
             }
-            foreach (var mesh in BodyModel.Meshes)
-            {
-                BodyWorld = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(BodyWorld * Matrix.CreateScale(0.03f) * Matrix.CreateTranslation(0,6f,0));
-                mesh.Draw();
+
+            for (float i=0; i<5; i++){
+                foreach (var mesh in BodyModel.Meshes)
+                {
+                    BodyWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(BodyWorld * Matrix.CreateScale(0.03f) * Matrix.CreateTranslation(0,6f,i*-60f));
+                    mesh.Draw();
+                }
             }
-            foreach (var mesh in TreeModel.Meshes)
-            {
-                TreeWorld = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(TreeWorld * Matrix.CreateScale(0.08f) * Matrix.CreateTranslation(5f,6f,5f));
-                mesh.Draw();
+            
+            for (float i=0; i<10; i++){
+                foreach (var mesh in TreeModel.Meshes)
+                {
+                    TreeWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(TreeWorld * Matrix.CreateScale(0.08f) * Matrix.CreateTranslation(0f,0f,i*10f+40f));
+                    mesh.Draw();
+                }
             }
-            foreach (var mesh in Tree1Model.Meshes)
-            {
-                Tree1World = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(Tree1World * Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(25f,6f,5f));
-                mesh.Draw();
+
+            for (float i=0; i<10; i++){
+                foreach (var mesh in Tree1Model.Meshes)
+                {
+                    Tree1World = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(Tree1World * Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(25f,0f,i*10f+40f));
+                    mesh.Draw();
+                }
             }
-            foreach (var mesh in DogModel.Meshes)
-            {
-                DogWorld = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(DogWorld * Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(25f,6f,15f));
-                mesh.Draw();
+            
+            for (float i=0; i<5; i++){
+                foreach (var mesh in DogModel.Meshes)
+                {
+                    DogWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(DogWorld * Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(20f,6f,i*-60+15f));
+                    mesh.Draw();
+                }
             }
+
             foreach (var mesh in Tree2Model.Meshes)
             {
                 Tree2World = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(Tree2World * Matrix.CreateScale(20f) * Matrix.CreateTranslation(25f,6f,60f));
+                Effect.Parameters["World"].SetValue(Tree2World * Matrix.CreateScale(20f) * Matrix.CreateTranslation(-50f,6f,60f));
                 mesh.Draw();
             }
-            foreach (var mesh in StarModel.Meshes)
-            {
-                StarWorld = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(StarWorld * Matrix.CreateScale(0.08f) *Matrix.CreateRotationY(MathHelper.PiOver2)* Matrix.CreateTranslation(25f,6f,60f));
-                mesh.Draw();
+
+            for (float i=0; i<5; i++){
+                foreach (var mesh in StarModel.Meshes)
+                {
+                    StarWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(StarWorld * Matrix.CreateScale(0.08f) *Matrix.CreateRotationY(MathHelper.PiOver2)* Matrix.CreateTranslation(40f,6f,i*10f+60f));
+                    mesh.Draw();
+                }
             }
-           foreach (var mesh in BridgeModel.Meshes)
+
+            foreach (var mesh in BridgeModel.Meshes)
             {
                 BridgeWorld = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(BridgeWorld * Matrix.CreateScale(1f) * Matrix.CreateRotationX(-1f*MathHelper.PiOver2) * Matrix.CreateTranslation(40f,6f,10f));
+                Effect.Parameters["World"].SetValue(BridgeWorld * Matrix.CreateScale(5f) * Matrix.CreateRotationX(-1f*MathHelper.PiOver2) * Matrix.CreateTranslation(35f,0f,20f));
                 mesh.Draw();
             }
-           
-           foreach (var mesh in BenchModel.Meshes)
-           {
-               BenchWorld = mesh.ParentBone.Transform;
-               Effect.Parameters["World"].SetValue(BenchWorld * Matrix.CreateScale(0.5f) *  Matrix.CreateTranslation(40f,6f,-10f));
-               mesh.Draw();
-           }
-           foreach (var mesh in PathModel.Meshes)
-           {
-               PathWorld = mesh.ParentBone.Transform;
-               Effect.Parameters["World"].SetValue(PathWorld * Matrix.CreateScale(0.08f)  * Matrix.CreateTranslation(60f,6f,10f));
-               mesh.Draw();
-           }
-           DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
-        
+
+            for (float i=0; i<10; i++){
+                foreach (var mesh in BenchModel.Meshes)
+                {
+                    BenchWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(BenchWorld * Matrix.CreateScale(0.25f) * Matrix.CreateRotationY(0.85f*MathHelper.PiOver4) * Matrix.CreateTranslation(110f,-12f,i*-60f+0f));
+                    mesh.Draw();
+                }
+            }
+
+            for (float i=0; i<10; i++){
+                foreach (var mesh in PathModel.Meshes)
+                {
+                    PathWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(PathWorld * Matrix.CreateScale(0.08f)  * Matrix.CreateTranslation(60f,0f,i*-70f));
+                    mesh.Draw();
+                }
+            }
+
+            foreach (var mesh in SlideModel.Meshes)
+            {
+                SlideWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(SlideWorld * Matrix.CreateScale(0.10f)  * Matrix.CreateTranslation(50f,0f,50f));
+                mesh.Draw();
+            }
+
+            foreach (var mesh in BikeModel.Meshes)
+            {
+                BikeWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(BikeWorld * Matrix.CreateScale(3f)  * Matrix.CreateTranslation(-50f,5f,0f));
+                mesh.Draw();
+            }
+
+            DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
         }
 
         /// <summary>
