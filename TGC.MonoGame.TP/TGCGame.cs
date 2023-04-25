@@ -40,7 +40,9 @@ namespace TGC.MonoGame.TP
         private const float DIAMETER = 10f;
         private const float CameraFollowRadius = 100f;
         private const float CameraUpDistance = 30f;
-       
+        private const float SphereRotatingVelocity = 0.05f;
+        private const float MouseSensitivity = 5f;
+
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
         private Effect Effect { get; set; }
@@ -82,11 +84,12 @@ namespace TGC.MonoGame.TP
         private SpherePrimitive Sphere { get; set; }
         private Matrix SphereRotation { get; set; }
         private Vector3 SpherePosition { get; set; }
-       // private float Yaw { get; set; }
+        private Vector3 SphereFrontDirection { get; set; }
+         private float Yaw { get; set; }
         private float Pitch { get; set; }
         private float Roll { get; set; }
         private float elapsedTime { get; set; }
-
+        private Vector2 pastMousePosition;
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
         ///     Escribir aqui el codigo de inicializacion: el procesamiento que podemos pre calcular para nuestro juego.
@@ -100,7 +103,7 @@ namespace TGC.MonoGame.TP
             var rasterizerState = new RasterizerState();
             rasterizerState.CullMode = CullMode.None;
             GraphicsDevice.RasterizerState = rasterizerState;
-            Camera = new TargetCamera(GraphicsDevice.Viewport.AspectRatio, Vector3.One * 100f, Vector3.Zero);
+            Camera = new TargetCamera(GraphicsDevice.Viewport.AspectRatio, Vector3.One * 100f, SpherePosition);
             // La logica de inicializacion que no depende del contenido se recomienda poner en este metodo.
             //Creacion de Esfera
             Sphere = new SpherePrimitive(GraphicsDevice, DIAMETER, 16, Color.Gold);
@@ -110,7 +113,7 @@ namespace TGC.MonoGame.TP
             // Configuramos nuestras matrices de la escena.
             SpherePosition = new Vector3(400, 15, 200);
             SphereRotation = Matrix.Identity;
-
+            SphereFrontDirection = Vector3.Forward;
             BodyWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(20f,20f,20f);
             BoyWorld = Matrix.Identity;
             BallWorld = Matrix.Identity;
@@ -128,6 +131,7 @@ namespace TGC.MonoGame.TP
             PathWorld = Matrix.Identity;
             SlideWorld = Matrix.Identity;
             BikeWorld = Matrix.Identity;
+            pastMousePosition = Mouse.GetState().Position.ToVector2();
 
             base.Initialize();
         }
@@ -279,9 +283,9 @@ namespace TGC.MonoGame.TP
             // Create a position that orbits the Robot by its direction (Rotation)
 
             // Create a normalized vector that points to the back of the Robot
-            var robotBackDirection = Vector3.Transform(Vector3.Backward, SphereRotation);
+            var sphereBackDirection = Vector3.Transform(Vector3.Backward, SphereRotation);
             // Then scale the vector by a radius, to set an horizontal distance between the Camera and the Robot
-            var orbitalPosition = robotBackDirection * CameraFollowRadius;
+            var orbitalPosition = sphereBackDirection * CameraFollowRadius;
 
 
             // We will move the Camera in the Y axis by a given distance, relative to the Robot
@@ -313,40 +317,53 @@ namespace TGC.MonoGame.TP
                 //Salgo del juego.
                 Exit();
             }
+            var currentSpeed = SPEED;
+            if (Keyboard.GetState().IsKeyDown(Keys.LeftShift))
+            {
+                currentSpeed *= 5f;
+            }
             if (Keyboard.GetState().IsKeyDown(Keys.W))
             {
-                SpherePosition += Vector3.Forward * SPEED * elapsedTime;
-                Pitch += elapsedTime * SPEED / 2;
+                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime;
+                Pitch += elapsedTime * currentSpeed / 2;
             }
             if (Keyboard.GetState().IsKeyDown(Keys.S))
             {
-                SpherePosition += Vector3.Backward * SPEED * elapsedTime;
-                Pitch -= elapsedTime * SPEED / 2;
+                SpherePosition -= SphereFrontDirection * currentSpeed * elapsedTime;
+                Pitch -= elapsedTime * currentSpeed / 2;
             }
             if (Keyboard.GetState().IsKeyDown(Keys.A))
             {
-                SpherePosition += Vector3.Left * SPEED * elapsedTime;
-                Roll += elapsedTime * SPEED / 2;
+                SpherePosition -= Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
+                Roll += elapsedTime * currentSpeed / 2;
             }
             if (Keyboard.GetState().IsKeyDown(Keys.D))
             {
-                SpherePosition += Vector3.Right * SPEED * elapsedTime;
-                Roll -= elapsedTime * SPEED / 2;
+                SpherePosition += Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
+                Roll -= elapsedTime * currentSpeed / 2;
             }
-            if (Keyboard.GetState().IsKeyDown(Keys.Space))
+            if (Keyboard.GetState().IsKeyDown(Keys.Right)) 
             {
-                SpherePosition += Vector3.Up * SPEED * elapsedTime;
+                SphereRotation *= Matrix.CreateRotationY(-SphereRotatingVelocity);
+                SphereFrontDirection = Vector3.Transform(Vector3.Forward, SphereRotation);
+            }       
+            if (Keyboard.GetState().IsKeyDown(Keys.Left))
+            {
+                SphereRotation *= Matrix.CreateRotationY(SphereRotatingVelocity);
+                SphereFrontDirection = Vector3.Transform(Vector3.Forward, SphereRotation);
             }
-            if (Keyboard.GetState().IsKeyDown(Keys.LeftControl))
+            if (Keyboard.GetState().IsKeyDown(Keys.Space) || Keyboard.GetState().IsKeyDown(Keys.Up))
             {
-                SpherePosition += Vector3.Down * SPEED * elapsedTime;
+                SpherePosition += Vector3.Up * currentSpeed * elapsedTime;
+            }
+            if (Keyboard.GetState().IsKeyDown(Keys.LeftControl) || Keyboard.GetState().IsKeyDown(Keys.Down))
+            {
+                SpherePosition += Vector3.Down * currentSpeed * elapsedTime;
             }
             if (Keyboard.GetState().IsKeyDown(Keys.R))
             {
-                SpherePosition = new Vector3(SpherePosition.X, DIAMETER / 2, SpherePosition.Z);
+                SpherePosition = new Vector3(SpherePosition.X, 15, SpherePosition.Z);
             }
-
-
             UpdateCamera();
             
             base.Update(gameTime);
@@ -383,12 +400,20 @@ namespace TGC.MonoGame.TP
             Effect.Parameters["DiffuseColor"].SetValue(Color.DarkGray.ToVector3());     
             
             
-
-            foreach (var mesh in SlideModel.Meshes)
-            {
-                SlideWorld = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(SlideWorld * Matrix.CreateScale(0.10f)  * Matrix.CreateTranslation(50f,0f,50f));
-                mesh.Draw();
+            for(float i = 0; i < 4; i++)
+            {         
+                foreach (var mesh in SlideModel.Meshes)
+                {
+                    SlideWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(SlideWorld * Matrix.CreateScale(0.8f) * Matrix.CreateRotationY(-MathHelper.PiOver2 - MathHelper.PiOver4)  * Matrix.CreateTranslation(-200f,2f,-400f*i - 100f));
+                    mesh.Draw();
+                }
+                foreach (var mesh in SlideModel.Meshes)
+                {
+                    SlideWorld = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(SlideWorld * Matrix.CreateScale(0.8f) * Matrix.CreateRotationY(MathHelper.PiOver2 + MathHelper.PiOver4) * Matrix.CreateTranslation(1100f, 2f, -400f * i - 100f));
+                    mesh.Draw();
+                }
             }
 
             foreach (var mesh in BikeModel.Meshes)
@@ -411,11 +436,11 @@ namespace TGC.MonoGame.TP
             foreach (var mesh in MonumentModel.Meshes)
             {
                 MonumentWorld = mesh.ParentBone.Transform;
-                Effect.Parameters["World"].SetValue(MonumentWorld *Matrix.CreateRotationY(MathHelper.PiOver2)* Matrix.CreateScale(1f)  * Matrix.CreateTranslation(400f,6f,-700f));
+                Effect.Parameters["World"].SetValue(MonumentWorld * Matrix.CreateScale(8f)  * Matrix.CreateTranslation(400f,6f,-1800f));
                 mesh.Draw();
             }
             Effect.Parameters["DiffuseColor"].SetValue(Color.Black.ToVector3());
-            for (float j=0; j<5; j++){  
+            for (float j=0; j<10; j++){  
             for (float i=0; i<2; i++){  
             foreach (var mesh in BallModel.Meshes)
             {
@@ -448,7 +473,7 @@ namespace TGC.MonoGame.TP
                 }       
             Effect.Parameters["DiffuseColor"].SetValue(Color.LimeGreen.ToVector3());     
 
-            for (float i=0; i<20; i++){
+            for (float i=0; i<25; i++){
                 foreach (var mesh in TreeModel.Meshes)
                 {
                     TreeWorld = mesh.ParentBone.Transform;
@@ -457,7 +482,7 @@ namespace TGC.MonoGame.TP
                 }
             }
 
-            for (float i=0; i<20; i++){
+            for (float i=0; i<25; i++){
                 foreach (var mesh in Tree1Model.Meshes)
                 {
                     Tree1World = mesh.ParentBone.Transform;
@@ -496,7 +521,7 @@ namespace TGC.MonoGame.TP
             }
             Effect.Parameters["DiffuseColor"].SetValue(Color.Yellow.ToVector3());     
 
-            for (float i=0; i<5; i++){
+            for (float i=0; i<8; i++){
                 foreach (var mesh in StarModel.Meshes)
                 {
                     StarWorld = mesh.ParentBone.Transform;

@@ -1,0 +1,116 @@
+git-lfs/2.11.0 (GitHub; windows amd64; go 1.14.2; git 48b28d97)
+git version 2.28.0.windows.1
+
+$ git.exe filter-process
+Error downloading object: TGC.MonoGame.TP/Content/Models/bench/Textures/Bench LP_DefaultMaterial_AO.png (9df8b7d): Smudge error: Error downloading TGC.MonoGame.TP/Content/Models/bench/Textures/Bench LP_DefaultMaterial_AO.png (9df8b7d351ed6b9f4e7fd8742b66b8f766e73b43a758bd737e5f096e8892bc08): batch request: missing protocol: ""
+
+missing protocol: ""
+batch request
+github.com/git-lfs/git-lfs/errors.newWrappedError
+	d:/a/git-lfs/git-lfs/errors/types.go:198
+github.com/git-lfs/git-lfs/errors.Wrap
+	d:/a/git-lfs/git-lfs/errors/errors.go:74
+github.com/git-lfs/git-lfs/tq.(*tqClient).Batch
+	d:/a/git-lfs/git-lfs/tq/api.go:68
+github.com/git-lfs/git-lfs/tq.Batch
+	d:/a/git-lfs/git-lfs/tq/api.go:40
+github.com/git-lfs/git-lfs/tq.(*TransferQueue).enqueueAndCollectRetriesFor
+	d:/a/git-lfs/git-lfs/tq/transfer_queue.go:559
+github.com/git-lfs/git-lfs/tq.(*TransferQueue).collectBatches.func1
+	d:/a/git-lfs/git-lfs/tq/transfer_queue.go:453
+runtime.goexit
+	go/src/runtime/asm_amd64.s:1373
+Error downloading TGC.MonoGame.TP/Content/Models/bench/Textures/Bench LP_DefaultMaterial_AO.png (9df8b7d351ed6b9f4e7fd8742b66b8f766e73b43a758bd737e5f096e8892bc08)
+github.com/git-lfs/git-lfs/errors.newWrappedError
+	d:/a/git-lfs/git-lfs/errors/types.go:198
+github.com/git-lfs/git-lfs/errors.Wrapf
+	d:/a/git-lfs/git-lfs/errors/errors.go:85
+github.com/git-lfs/git-lfs/lfs.(*GitFilter).downloadFile
+	d:/a/git-lfs/git-lfs/lfs/gitfilter_smudge.go:115
+github.com/git-lfs/git-lfs/lfs.(*GitFilter).Smudge
+	d:/a/git-lfs/git-lfs/lfs/gitfilter_smudge.go:76
+github.com/git-lfs/git-lfs/commands.smudge
+	d:/a/git-lfs/git-lfs/commands/command_smudge.go:127
+github.com/git-lfs/git-lfs/commands.filterCommand
+	d:/a/git-lfs/git-lfs/commands/command_filter_process.go:120
+github.com/spf13/cobra.(*Command).execute
+	go/pkg/mod/github.com/spf13/cobra@v0.0.3/command.go:766
+github.com/spf13/cobra.(*Command).ExecuteC
+	go/pkg/mod/github.com/spf13/cobra@v0.0.3/command.go:852
+github.com/spf13/cobra.(*Command).Execute
+	go/pkg/mod/github.com/spf13/cobra@v0.0.3/command.go:800
+github.com/git-lfs/git-lfs/commands.Run
+	d:/a/git-lfs/git-lfs/commands/run.go:103
+main.main
+	d:/a/git-lfs/git-lfs/git-lfs.go:33
+runtime.main
+	go/src/runtime/proc.go:203
+runtime.goexit
+	go/src/runtime/asm_amd64.s:1373
+Smudge error
+github.com/git-lfs/git-lfs/errors.newWrappedError
+	d:/a/git-lfs/git-lfs/errors/types.go:198
+github.com/git-lfs/git-lfs/errors.NewSmudgeError
+	d:/a/git-lfs/git-lfs/errors/types.go:284
+github.com/git-lfs/git-lfs/lfs.(*GitFilter).Smudge
+	d:/a/git-lfs/git-lfs/lfs/gitfilter_smudge.go:85
+github.com/git-lfs/git-lfs/commands.smudge
+	d:/a/git-lfs/git-lfs/commands/command_smudge.go:127
+github.com/git-lfs/git-lfs/commands.filterCommand
+	d:/a/git-lfs/git-lfs/commands/command_filter_process.go:120
+github.com/spf13/cobra.(*Command).execute
+	go/pkg/mod/github.com/spf13/cobra@v0.0.3/command.go:766
+github.com/spf13/cobra.(*Command).ExecuteC
+	go/pkg/mod/github.com/spf13/cobra@v0.0.3/command.go:852
+github.com/spf13/cobra.(*Command).Execute
+	go/pkg/mod/github.com/spf13/cobra@v0.0.3/command.go:800
+github.com/git-lfs/git-lfs/commands.Run
+	d:/a/git-lfs/git-lfs/commands/run.go:103
+main.main
+	d:/a/git-lfs/git-lfs/git-lfs.go:33
+runtime.main
+	go/src/runtime/proc.go:203
+runtime.goexit
+	go/src/runtime/asm_amd64.s:1373
+
+Current time in UTC: 
+2023-04-24 19:17:58
+
+ENV:
+LocalWorkingDir=
+LocalGitDir=
+LocalGitStorageDir=
+LocalMediaDir=lfs\objects
+LocalReferenceDirs=
+TempDir=lfs\tmp
+ConcurrentTransfers=8
+TusTransfers=false
+BasicTransfersOnly=false
+SkipDownloadErrors=false
+FetchRecentAlways=false
+FetchRecentRefsDays=7
+FetchRecentCommitsDays=0
+FetchRecentRefsIncludeRemotes=true
+PruneOffsetDays=3
+PruneVerifyRemoteAlways=false
+PruneRemoteName=origin
+LfsStorageDir=lfs
+AccessDownload=none
+AccessUpload=none
+DownloadTransfers=basic,lfs-standalone-file
+UploadTransfers=basic,lfs-standalone-file
+GIT_ASKPASS=c:/program files/microsoft visual studio/2022/community/common7/ide/commonextensions/microsoft/teamfoundation/team explorer/Git/mingw64/bin\git-askpass.exe
+GIT_CEILING_DIRECTORIES=E:/Cosas de Windows/Escritorio de windows/UTN/2023/TGC/TP/Repos/A
+GIT_CONFIG_PARAMETERS='gc.auto'='0' 'credential.helper'='manager' 'core.askpass'='c:/program files/microsoft visual studio/2022/community/common7/ide/commonextensions/microsoft/teamfoundation/team explorer/Git/mingw64/bin\git-askpass.exe'
+GIT_EXEC_PATH=c:/program files/microsoft visual studio/2022/community/common7/ide/commonextensions/microsoft/teamfoundation/team explorer/Git/mingw64/libexec/git-core
+GIT_FLUSH=1
+GIT_HTTP_USER_AGENT=git/2.39.2 (Microsoft Windows NT 10.0.19044.0; Win32NT x64) CLR/4.0.30319 VS17/17.0.0
+GIT_LFS_PATH=C:\Program Files\Git LFS
+GIT_MERGE_VERBOSITY=4
+GIT_PAGER=cat
+GIT_PREFIX=
+GIT_TERMINAL_PROMPT=0
+
+Client IP addresses:
+fe80::a076:44f5:47b1:8329 192.168.0.22
+2001:0:2877:7aa:24b9:da8:4108:3d0a fe80::24b9:da8:4108:3d0a
