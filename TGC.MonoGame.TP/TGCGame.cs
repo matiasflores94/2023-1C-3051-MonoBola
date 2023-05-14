@@ -1,4 +1,5 @@
 ﻿using System;
+using BepuPhysics.Collidables;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -42,14 +43,13 @@ namespace TGC.MonoGame.TP
         private const float CameraFollowRadius = 100f;
         private const float CameraUpDistance = 30f;
         private const float SphereRotatingVelocity = 0.05f;
-        private const float MouseSensitivity = 5f;
+        private const float MouseSensitivity = 3f;
 
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
         private Effect Effect { get; set; }
         private Effect BallEffect { get; set; }
         private Model SphereModel { get; set; }
-
         private Model BodyModel { get; set; }
         private Matrix BodyWorld { get; set; }
         private Model BallModel { get; set; }
@@ -78,47 +78,68 @@ namespace TGC.MonoGame.TP
         private Matrix LampWorld { get; set; }
 
         private Model StarModel { get; set; }
+        private Model BirdModel { get; set; }
+        private Matrix BirdWorld { get; set; }
+
         private Matrix StarWorld { get; set; }
         private Matrix FloorWorld { get; set; }
         private Model SlideModel { get; set; }
         private Matrix SlideWorld { get; set; }
         private Model BikeModel { get; set; }
+        private Model ArcoModel { get; set; }
+        private Matrix ArcoWorld { get; set; }
+
         private Matrix BikeWorld { get; set; }
         private QuadPrimitive Quad { get; set; }
         private Matrix WallWorld { get; set; }
         private QuadPrimitive QuadWall { get; set; }
         private SpherePrimitive Sphere { get; set; }
+        private CylinderPrimitive Cylinder { get; set; }
         private Matrix SphereRotation { get; set; }
         private Vector3 SpherePosition { get; set; }
+        private Vector3 Checkpoint1Position { get; set; }
+
+        private Vector3 Checkpoint2Position { get; set; }
+        private Vector3 FinishPosition { get; set; }
+
         private Vector3 SphereFrontDirection { get; set; }
         private float Yaw { get; set; }
         private float Pitch { get; set; }
         private float Roll { get; set; }
         private float elapsedTime { get; set; }
         private float pastMousePositionY;
-
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
         ///     Escribir aqui el codigo de inicializacion: el procesamiento que podemos pre calcular para nuestro juego.
         /// </summary>
         protected override void Initialize()
         {
-
+          
             // Apago el backface culling.
             // Esto se hace por un problema en el diseno del modelo del logo de la materia.
             // Una vez que empiecen su juego, esto no es mas necesario y lo pueden sacar.
             var rasterizerState = new RasterizerState();
             rasterizerState.CullMode = CullMode.None;
             GraphicsDevice.RasterizerState = rasterizerState;
+            
+             Graphics.PreferredBackBufferWidth =
+                 GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+             Graphics.PreferredBackBufferHeight =
+                 GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+               Graphics.ApplyChanges();
             Camera = new TargetCamera(GraphicsDevice.Viewport.AspectRatio, Vector3.One * 100f, SpherePosition);
             // La logica de inicializacion que no depende del contenido se recomienda poner en este metodo.
             //Creacion de Esfera
             Sphere = new SpherePrimitive(GraphicsDevice, DIAMETER, 16, Color.Gold);
+            Cylinder = new CylinderPrimitive(GraphicsDevice, 5000, 200, 32);
+
             //Creacion de piso
             Quad = new QuadPrimitive(GraphicsDevice);
             QuadWall = new QuadPrimitive(GraphicsDevice);
             // Configuramos nuestras matrices de la escena.
-            SpherePosition = new Vector3(400, 15, 200);
+            var Alto = GraphicsDevice.Viewport.Bounds.Height;
+            var Ancho = GraphicsDevice.Viewport.Bounds.Width;
+            SpherePosition = new Vector3(350f, 15, 200);
             SphereRotation = Matrix.Identity;
             SphereFrontDirection = Vector3.Forward;
             BodyWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(20f, 20f, 20f);
@@ -126,7 +147,7 @@ namespace TGC.MonoGame.TP
             BallWorld = Matrix.Identity;
             GrassWorld = Matrix.Identity;
             FloorWorld = Matrix.CreateScale(200f);
-            WallWorld = Matrix.CreateScale(100f) * Matrix.CreateRotationZ(MathHelper.PiOver2) * Matrix.CreateTranslation(100f, 0f, 0f);
+            WallWorld = Matrix.CreateScale(100f) * Matrix.CreateRotationZ(MathHelper.PiOver2) * Matrix.CreateTranslation(Ancho/8f, 0f, 0f);
             TreeWorld = Matrix.Identity;
             MonumentWorld = Matrix.Identity;
             DogWorld = Matrix.Identity;
@@ -138,12 +159,14 @@ namespace TGC.MonoGame.TP
             PathWorld = Matrix.Identity;
             SlideWorld = Matrix.Identity;
             LampWorld = Matrix.Identity;
+            Checkpoint1Position = new Vector3(400, 0, -2000);
+            Checkpoint2Position = new Vector3(-1680, 0, -2000);
 
             BikeWorld = Matrix.Identity;
             pastMousePositionY = Mouse.GetState().Position.ToVector2().Y;
             IsMouseVisible = false;
             Mouse.SetPosition(GraphicsDevice.Viewport.Bounds.Height/2,GraphicsDevice.Viewport.Bounds.Width/2);
-
+            GraphicsDevice.BlendState = BlendState.AlphaBlend;
             base.Initialize();
         }
 
@@ -171,15 +194,14 @@ namespace TGC.MonoGame.TP
             SlideModel = Content.Load<Model>(ContentFolder3D + "slide/Hill");
             BikeModel = Content.Load<Model>(ContentFolder3D + "bike/Bicicle");
             LampModel = Content.Load<Model>(ContentFolder3D + "lamp/streetlamp");
+            BirdModel = Content.Load<Model>(ContentFolder3D + "bird/bird");
+            ArcoModel = Content.Load<Model>(ContentFolder3D + "arco/Soccergoal");
 
             // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
             BallEffect = Content.Load<Effect>(ContentFolderEffects + "BallShader");
 
-            /*  EffectBrown = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
-              EffectPink = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
-              EffectPink = Content.Load<Effect>(ContentFolderEffects + "BasicShader");*/
             FuncionesGenerales.loadEffectOnMesh(GrassModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BodyModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(LampModel, Effect);
@@ -198,9 +220,11 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(PathModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BenchModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(SlideModel, Effect);
+            FuncionesGenerales.loadEffectOnMesh(BirdModel, Effect);
+            FuncionesGenerales.loadEffectOnMesh(ArcoModel, Effect);
 
 
-
+            
 
 
             base.LoadContent();
@@ -249,7 +273,7 @@ namespace TGC.MonoGame.TP
             var currentSpeed = SPEED;
             if (Keyboard.GetState().IsKeyDown(Keys.LeftShift))
             {
-                currentSpeed *= 5f;
+                currentSpeed *= 10f;
             }
 
             if (Keyboard.GetState().IsKeyDown(Keys.W))
@@ -302,29 +326,43 @@ namespace TGC.MonoGame.TP
         ///     Se llama cada vez que hay que refrescar la pantalla.
         ///     Escribir aqui el codigo referido al renderizado.
         /// </summary>
-        private Matrix SphereWorld = Matrix.Identity;
         
         protected override void Draw(GameTime gameTime)
         {
 
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            var Alto = GraphicsDevice.Viewport.Bounds.Height;
-            var Ancho = GraphicsDevice.Viewport.Bounds.Width;
-
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
-
+            generateLevel();
             Effect.Parameters["View"].SetValue(Camera.View);
             Effect.Parameters["Projection"].SetValue(Camera.Projection);
             BallEffect.Parameters["View"].SetValue(Camera.View);
             BallEffect.Parameters["Projection"].SetValue(Camera.Projection);
+            DrawCylinder(Cylinder, Checkpoint1Position);
+            DrawCylinder(Cylinder, Checkpoint2Position);
+
             DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
 
-            generateLevel();
+           
           //  FuncionesGenerales.drawMesh(SphereModel,SphereWorld*Matrix.CreateTranslation(SpherePosition),BallEffect);
     
 
         }
+
+        private void DrawCylinder(GeometricPrimitive geometry, Vector3 position)
+        {
+            var effect = Effect;
+            Effect.Parameters["DiffuseColor"].SetValue(Color.Yellow.ToVector3());
+           
+            effect.Parameters["Alfa"].SetValue(0.3f);
+            effect.Parameters["World"].SetValue( Matrix.CreateTranslation(position));
+      
+ 
+            geometry.Draw(effect);
+            effect.Parameters["Alfa"].SetValue(1f);
+
+        }
+        
 
         /// <summary>
         ///     Libero los recursos que se cargaron en el juego.
@@ -352,7 +390,7 @@ namespace TGC.MonoGame.TP
     {
         Effect.Parameters["DiffuseColor"].SetValue(Color.DarkGreen.ToVector3());
 
-        for (float i = 0; i < 20; i++)
+        for (float i = 0; i < 40; i++)
         {
             for (float j = 0; j < 20; j++)
             {
@@ -360,7 +398,7 @@ namespace TGC.MonoGame.TP
                 {
                     GrassWorld = mesh.ParentBone.Transform;
                     Effect.Parameters["World"].SetValue(GrassWorld * Matrix.CreateScale(0.4f) *
-                                                        Matrix.CreateTranslation(i * 200f - 2000f, 0, j * -200f));
+                                                        Matrix.CreateTranslation(i * 200f - 6000f, 0, j * -200f));
                     mesh.Draw();
                 }
             }
@@ -376,18 +414,18 @@ namespace TGC.MonoGame.TP
             mesh.Draw();
         }
 
-        for (float i = 0; i < 5; i++)
+        for (float i = 0; i < 10; i++)
         {
             foreach (var mesh in PathModel.Meshes)
             {
                 PathWorld = mesh.ParentBone.Transform;
                 Effect.Parameters["World"].SetValue(PathWorld * Matrix.CreateScale(0.5f) *
-                                                    Matrix.CreateTranslation(400f, 5f, i * -200f));
+                                                    Matrix.CreateTranslation(-i*200f-1500, 5f, - 2000f));
                 mesh.Draw();
 
             }
         }
-
+     
         for (float i = 0; i < 5; i++)
         {
             foreach (var mesh in PathModel.Meshes)
@@ -399,8 +437,18 @@ namespace TGC.MonoGame.TP
 
             }
         }
+        for (float i = 0; i < 4; i++)
+        {
+            foreach (var mesh in PathModel.Meshes)
+            {
+                PathWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(PathWorld * Matrix.CreateScale(0.5f) *
+                                                    Matrix.CreateTranslation(400f, 5f, i * -200f ));
+                mesh.Draw();
 
-        for (float i = 0; i < 3; i++)
+            }
+        }
+        for (float i = 0; i < 2; i++)
         {
             foreach (var mesh in PathModel.Meshes)
             {
@@ -427,29 +475,60 @@ namespace TGC.MonoGame.TP
             SlideWorld = mesh.ParentBone.Transform;
             Effect.Parameters["World"].SetValue(SlideWorld * Matrix.CreateScale(0.8f) *
                                                 Matrix.CreateRotationY(-1 * MathHelper.PiOver2) *
-                                                Matrix.CreateTranslation(-700f, 6f, -2000f));
+                                                Matrix.CreateTranslation(-650f, 6f, -2000f));
             mesh.Draw();
         }
 
         Effect.Parameters["DiffuseColor"].SetValue(Color.White.ToVector3());
-        for (float j = 0; j < 10; j++)
-        {
+    
             foreach (var mesh in BallModel.Meshes)
             {
                 BallWorld = mesh.ParentBone.Transform;
                 Effect.Parameters["World"].SetValue(BallWorld * Matrix.CreateRotationY(MathHelper.PiOver2) *
-                                                    Matrix.CreateScale(0.5f) *
-                                                    Matrix.CreateTranslation(400f, 12f, 0f + j * -100f));
+                                                    Matrix.CreateScale(0.8f) *
+                                                    Matrix.CreateTranslation(400f, 12f, 0f + -200f));
                 mesh.Draw();
             }
-        }
+            
+            foreach (var mesh in BallModel.Meshes)
+            {
+                BallWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(BallWorld * Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                                    Matrix.CreateScale(1f) *
+                                                    Matrix.CreateTranslation(350f, 12f, 0f +  -400f));
+                mesh.Draw();
+            }
+            foreach (var mesh in BallModel.Meshes)
+            {
+                BallWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(BallWorld * Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                                    Matrix.CreateScale(1f) *
+                                                    Matrix.CreateTranslation(450f, 12f, 0f +  -600f));
+                mesh.Draw();
+            }
+            foreach (var mesh in BirdModel.Meshes)
+            {
+                BirdWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(BirdWorld * 
+                                                    Matrix.CreateScale(3f) *
+                                                    Matrix.CreateTranslation(-1000f, 300f, -1500f));
+                mesh.Draw();
+            }
+            foreach (var mesh in ArcoModel.Meshes)
+            {
+                ArcoWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(ArcoWorld * Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                                    Matrix.CreateScale(2f) *
+                                                    Matrix.CreateTranslation(-3200, 12f, -2000f));
+                mesh.Draw();
+            }
 
         Effect.Parameters["DiffuseColor"].SetValue(Color.LightPink.ToVector3());
 
         foreach (var mesh in BodyModel.Meshes)
         {
             BodyWorld = mesh.ParentBone.Transform;
-            Effect.Parameters["World"].SetValue(BodyWorld * Matrix.CreateScale(0.6f) *
+            Effect.Parameters["World"].SetValue(BodyWorld * Matrix.CreateScale(1f) *
                                                 Matrix.CreateRotationY(MathHelper.Pi) *
                                                 Matrix.CreateTranslation(200f, 150f, 150f));
             mesh.Draw();
@@ -459,7 +538,7 @@ namespace TGC.MonoGame.TP
         {
             BodyWorld = mesh.ParentBone.Transform;
             Effect.Parameters["World"]
-                .SetValue(BodyWorld * Matrix.CreateScale(0.6f) * Matrix.CreateTranslation(200f, 150f, -100f));
+                .SetValue(BodyWorld * Matrix.CreateScale(0.6f) * Matrix.CreateTranslation(200f, 150f, 0f));
             mesh.Draw();
         }
 
@@ -467,7 +546,7 @@ namespace TGC.MonoGame.TP
         {
             BoyWorld = mesh.ParentBone.Transform;
             Effect.Parameters["World"]
-                .SetValue(BoyWorld * Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f, 8f, -500f));
+                .SetValue(BoyWorld *Matrix.CreateRotationY(MathHelper.PiOver4) *Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f, 8f, -500f)) ;
             mesh.Draw();
         }
 
@@ -495,7 +574,7 @@ namespace TGC.MonoGame.TP
             }
         }
 
-        for (float i = 0; i < 7; i++)
+        for (float i = 0; i < 6; i++)
         {
             foreach (var mesh in Tree1Model.Meshes)
             {
@@ -505,8 +584,30 @@ namespace TGC.MonoGame.TP
                 mesh.Draw();
             }
         }
+        for (float i = 0; i < 9; i++)
+        {
+            foreach (var mesh in Tree1Model.Meshes)
+            {
+                TreeWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(TreeWorld * Matrix.CreateScale(0.1f) *
+                                                    Matrix.CreateTranslation(-i*300f-600f, 8f, -1600f));
 
-        for (float i = 0; i < 25; i++)
+                mesh.Draw();
+            }
+        }
+        for (float i = 0; i < 11; i++)
+        {
+            foreach (var mesh in Tree1Model.Meshes)
+            {
+                TreeWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(TreeWorld * Matrix.CreateScale(0.1f) *
+                                                    Matrix.CreateTranslation(-i*300f+50f, 8f, -2300f));
+
+                mesh.Draw();
+            }
+        }
+
+        for (float i = 0; i < 13; i++)
         {
             foreach (var mesh in Tree1Model.Meshes)
             {
@@ -560,15 +661,15 @@ namespace TGC.MonoGame.TP
             mesh.Draw();
         }
 
-        for (float i = 0; i < 10; i++)
+        for (float i = 0; i < 5; i++)
         {
-            for (float j = 0; j < 4; j++)
+            for (float j = 0; j < 5; j++)
             {
                 foreach (var mesh in GrassModel.Meshes)
                 {
                     GrassWorld = mesh.ParentBone.Transform;
                     Effect.Parameters["World"].SetValue(GrassWorld * Matrix.CreateScale(0.4f) *
-                                                        Matrix.CreateTranslation(-i * 200f - 700f, 2f,
+                                                        Matrix.CreateTranslation(-i * 200f - 600f, 6f,
                                                             j * -200f - 1750f));
                     mesh.Draw();
                 }
@@ -604,7 +705,8 @@ namespace TGC.MonoGame.TP
 
     private void moverCamaraMouse()
     {
-        SphereRotation = Matrix.CreateRotationY(Mouse.GetState().Position.ToVector2().X*-0.1f);
+        SphereRotation = Matrix.CreateRotationY(Mouse.GetState().Position.ToVector2().X*-0.05f);
+
         SphereFrontDirection = Vector3.Transform(Vector3.Forward, SphereRotation);
     }
     }
