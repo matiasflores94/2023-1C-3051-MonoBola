@@ -43,7 +43,7 @@ namespace TGC.MonoGame.TP
         private const float CameraFollowRadius = 100f;
         private const float CameraUpDistance = 30f;
         private const float SphereRotatingVelocity = 0.05f;
-        private const float MouseSensitivity = 3f;
+        private const float MouseSensitivity = -0.005f;
 
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
@@ -259,6 +259,15 @@ namespace TGC.MonoGame.TP
         ///     Se debe escribir toda la logica de computo del modelo, asi como tambien verificar entradas del usuario y reacciones
         ///     ante ellas.
         /// </summary>
+
+        float currentSpeed = SPEED;
+        float acceleration = 0f;
+        private Vector3 Velocity = Vector3.Zero;
+        private Vector3 Acceleration = Vector3.Zero;
+        private const float HORIZONTAL_ACC = 300f;
+        private const float GRAVITY = -200.0f;
+        private const float FRICTION = 0.99995f;
+        private const float JUMP_SPEED = 100f;
         protected override void Update(GameTime gameTime)
         {
             // Aca deberiamos poner toda la logica de actualizacion del juego.
@@ -269,14 +278,66 @@ namespace TGC.MonoGame.TP
                 //Salgo del juego.
                 Exit();
             }
-
-            var currentSpeed = SPEED;
-            if (Keyboard.GetState().IsKeyDown(Keys.LeftShift))
+            
+            /*if (Keyboard.GetState().IsKeyDown(Keys.LeftShift))
             {
-                currentSpeed *= 10f;
+                acceleration += 0.05f;
+            }*/
+
+            var isOnGround = MathF.Abs(SpherePosition.Y) <= 10f/*float.Epsilon*/;
+
+            if(isOnGround){
+                if (Keyboard.GetState().IsKeyDown(Keys.A))
+                {
+                    /*Acceleration = Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
+                    Roll += elapsedTime * currentSpeed / 2;*/
+                    SpherePosition -= Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
+                    Roll += elapsedTime * currentSpeed / 2;
+                }
+
+                if (Keyboard.GetState().IsKeyDown(Keys.D))
+                {
+                    /*Acceleration = -Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
+                    Roll -= elapsedTime * currentSpeed / 2;*/
+                    SpherePosition += Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
+                    Roll -= elapsedTime * currentSpeed / 2;
+                }
+
+                if(Keyboard.GetState().IsKeyDown(Keys.W)){
+                    Acceleration = SphereFrontDirection * HORIZONTAL_ACC;
+                    Pitch += elapsedTime * currentSpeed / 2;
+                }else if(Keyboard.GetState().IsKeyDown(Keys.S)){
+                    Acceleration = -SphereFrontDirection * HORIZONTAL_ACC;
+                    Pitch -= elapsedTime * currentSpeed / 2;
+                }else{
+                    var HorizontalVelocity = -Velocity;
+                    HorizontalVelocity.Y = 0f;
+                    Acceleration = -Velocity * FRICTION;
+                }
+            }else{
+                Acceleration = Vector3.Zero;
+            }
+            
+            Acceleration.Y = GRAVITY;
+
+            if(Keyboard.GetState().IsKeyDown(Keys.Space) && isOnGround){
+                Velocity.Y += JUMP_SPEED;
             }
 
-            if (Keyboard.GetState().IsKeyDown(Keys.W))
+            Velocity += Acceleration * elapsedTime;
+            SpherePosition += Velocity * elapsedTime;
+
+            if(SpherePosition.Y <= 10f){
+                Velocity.Y = 0f;
+
+                //no se por qué tira error de que no se puede asignar directamente a SpherePosition.Y
+                //de momento lo soluciono con esto
+                Vector3 Position = SpherePosition;
+                Position.Y = 10f;
+                SpherePosition = Position;
+            }
+
+            /*if (Keyboard.GetState().IsKeyDown(Keys.W))
             {
                 SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime;
                 Pitch += elapsedTime * currentSpeed / 2;
@@ -285,6 +346,35 @@ namespace TGC.MonoGame.TP
             if (Keyboard.GetState().IsKeyDown(Keys.S))
             {
                 SpherePosition -= SphereFrontDirection * currentSpeed * elapsedTime;
+                Pitch -= elapsedTime * currentSpeed / 2;
+            }*/
+
+            /*if(Keyboard.GetState().IsKeyUp(Keys.W) && Keyboard.GetState().IsKeyUp(Keys.S)){
+	            if(acceleration>0f){
+		            acceleration -= 0.05f;
+	            }else if(acceleration<0f){
+		            acceleration += 0.05f;
+	            }else{
+                    acceleration = 0f;
+                }
+                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime * acceleration;
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Keys.W))
+            {
+                if(acceleration<=25f){
+                    acceleration += 0.05f;
+                }
+                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime * acceleration;
+                Pitch += elapsedTime * currentSpeed / 2;
+            }
+
+            if (Keyboard.GetState().IsKeyDown(Keys.S))
+            {
+                if(acceleration>=-25f){
+                    acceleration -= 0.05f;
+                }
+                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime * acceleration;
                 Pitch -= elapsedTime * currentSpeed / 2;
             }
 
@@ -300,7 +390,6 @@ namespace TGC.MonoGame.TP
                 Roll -= elapsedTime * currentSpeed / 2;
             }
             
-            
             if (Keyboard.GetState().IsKeyDown(Keys.Space) || Keyboard.GetState().IsKeyDown(Keys.Up))
             {
                 SpherePosition += Vector3.Up * currentSpeed * elapsedTime;
@@ -314,7 +403,9 @@ namespace TGC.MonoGame.TP
             if (Keyboard.GetState().IsKeyDown(Keys.R))
             {
                 SpherePosition = new Vector3(SpherePosition.X, 15, SpherePosition.Z);
-            }
+            }*/
+
+
 
             moverCamaraMouse();
             UpdateCamera();
@@ -705,7 +796,7 @@ namespace TGC.MonoGame.TP
 
     private void moverCamaraMouse()
     {
-        SphereRotation = Matrix.CreateRotationY(Mouse.GetState().Position.ToVector2().X*-0.05f);
+        SphereRotation = Matrix.CreateRotationY(Mouse.GetState().Position.ToVector2().X*MouseSensitivity);
 
         SphereFrontDirection = Vector3.Transform(Vector3.Forward, SphereRotation);
     }
