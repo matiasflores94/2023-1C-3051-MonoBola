@@ -129,6 +129,9 @@ namespace TGC.MonoGame.TP
 
         private Effect SphereEffect { get; set; }
         private Texture2D RockTexture { get; set; }
+        private Texture2D MetalTexture { get; set; }
+        private Texture2D RubberTexture { get; set; }
+        private Texture2D BallTexture { get; set; }
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
         ///     Escribir aqui el codigo de inicializacion: el procesamiento que podemos pre calcular para nuestro juego.
@@ -261,6 +264,8 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(SphereModel, BallEffect);
 
             RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
+            MetalTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-metal");
+            RubberTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-goma");
 
             base.LoadContent();
         }
@@ -301,10 +306,13 @@ namespace TGC.MonoGame.TP
         private const float HORIZONTAL_ACC = 300f;
         private const float GRAVITY = -200.0f;
         private const float FRICTION = 0.99995f;
-        private const float JUMP_SPEED = 100f;
+        private float JumpSpeed = 100f;
+
         protected override void Update(GameTime gameTime)
         {
             // Aca deberiamos poner toda la logica de actualizacion del juego.
+            chequearPropiedadesTextura(BallEffect.Parameters["ModelTexture"]?.GetValueTexture2D());
+
             elapsedTime = Convert.ToSingle(gameTime.ElapsedGameTime.TotalSeconds);
             // Capturar Input teclado
             if (Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -355,7 +363,7 @@ namespace TGC.MonoGame.TP
             Acceleration.Y = GRAVITY;
 
             if(Keyboard.GetState().IsKeyDown(Keys.Space) && isOnGround){
-                Velocity.Y += JUMP_SPEED;
+                Velocity.Y += JumpSpeed;
             }
 
             Velocity += Acceleration * elapsedTime;
@@ -465,7 +473,7 @@ namespace TGC.MonoGame.TP
         }
         private void DrawSphere(Vector3 position, float yaw, float pitch, float roll)
         {
-            BallEffect.Parameters["ModelTexture"]?.SetValue(RockTexture);
+            BallEffect.Parameters["ModelTexture"]?.SetValue(RubberTexture);
             foreach (var mesh in SphereModel.Meshes)
             {
                 BallWorld = mesh.ParentBone.Transform;
@@ -878,6 +886,16 @@ namespace TGC.MonoGame.TP
         SphereRotation = Matrix.CreateRotationY(Mouse.GetState().Position.ToVector2().X*MouseSensitivity);
 
         SphereFrontDirection = Vector3.Transform(Vector3.Forward, SphereRotation);
+    }
+
+    private void chequearPropiedadesTextura(Texture2D texture){
+        if (texture == RubberTexture){
+            JumpSpeed = 200f;
+        }else if (texture == MetalTexture){
+            currentSpeed = 75f;
+        }else if (texture == RockTexture){
+            currentSpeed = 20f;
+        }
     }
     }
 

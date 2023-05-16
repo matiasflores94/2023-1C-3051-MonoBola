@@ -386,6 +386,30 @@
 /processorParam:TextureFormat=Compressed
 /build:Models/tree3/Lowpoly_tree_sample.fbx
 
+#begin Textures/esfera-goma.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Textures/esfera-goma.png
+
+#begin Textures/esfera-metal.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Textures/esfera-metal.png
+
 #begin Textures/esfera-piedra.png
 /importer:TextureImporter
 /processor:TextureProcessor
