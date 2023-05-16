@@ -68,7 +68,21 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	return color;//float4(input.TextureCoordinates, 0.0, 1.0);
 
     //return float4(DiffuseColor,1.0);
+}/*
+float LinearizeDepth(float depth)
+{
+    float z = depth * 2.0 - 1.0; // Back to NDC 
+    return ((2.0 * nearPlaneDistance * farPlaneDistance) / (farPlaneDistance + nearPlaneDistance - z * (farPlaneDistance - nearPlaneDistance))) / farPlaneDistance;
 }
+
+float4 DepthPS(VertexShaderOutput input) : COLOR
+{
+    float depth = tex2D(TextureSampler, input.TextureCoordinates).r;
+    float linearDepth = LinearizeDepth(depth);
+	// Perspective
+	return float4(linearDepth, linearDepth, linearDepth, 1.0); 
+}
+*/
 
 technique BasicColorDrawing
 {

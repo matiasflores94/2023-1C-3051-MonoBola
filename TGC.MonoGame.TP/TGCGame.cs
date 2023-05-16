@@ -91,6 +91,7 @@ namespace TGC.MonoGame.TP
         private Matrix SlideWorld { get; set; }
         private Model BikeModel { get; set; }
         private Model ArcoModel { get; set; }
+
         private Matrix ArcoWorld { get; set; }
         private Boolean god  { get; set; }
         private Matrix BikeWorld { get; set; }
@@ -100,6 +101,8 @@ namespace TGC.MonoGame.TP
         private SpherePrimitive Sphere { get; set; }
         private CylinderPrimitive Cylinder { get; set; }
         private Matrix SphereRotation { get; set; }
+        private Matrix SphereWorld { get; set; }
+
         private Vector3 SpherePosition { get; set; }
         private Vector3 Checkpoint1Position { get; set; }
         private BoundingCylinder CheckPoint1Collide { get; set; }
@@ -113,8 +116,8 @@ namespace TGC.MonoGame.TP
         private OrientedBoundingBox FinishCollide { get; set; }
         private Vector3 Checkpoint2Position { get; set; }
         private Vector3 FinishPosition { get; set; }
-        private Boolean Checkpoint1{ get; set; }
-        private Boolean Checkpoint2{ get; set; }
+        private int Checkpoint1;
+        private int Checkpoint2;
         private Boolean Finsh{ get; set; }
         private Vector3 BirdPosition { get; set; }
         private Vector3 SphereFrontDirection { get; set; }
@@ -178,7 +181,9 @@ namespace TGC.MonoGame.TP
             SlideWorld = Matrix.Identity;
             LampWorld = Matrix.Identity;
             BirdPosition = new Vector3(-1000f, 150f, -1500f);
-            Checkpoint1 = false;
+            Checkpoint1 = 0;
+            Checkpoint2 = 0;
+
             god = false;
             Checkpoint1Position = new Vector3(400, 0, -2000);
             Checkpoint2Position = new Vector3(-1680, 0, -2000);
@@ -227,19 +232,18 @@ namespace TGC.MonoGame.TP
             LampModel = Content.Load<Model>(ContentFolder3D + "lamp/streetlamp");
             BirdModel = Content.Load<Model>(ContentFolder3D + "bird/bird");
             ArcoModel = Content.Load<Model>(ContentFolder3D + "arco/Soccergoal");
+            SphereModel = Content.Load<Model>(ContentFolder3D + "ball/ball");
 
             // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
             BallEffect = Content.Load<Effect>(ContentFolderEffects + "BallShader");
-            //SphereEffect = Content.Load<Effect>(ContentFolderEffects + "SphereShader");
 
             FuncionesGenerales.loadEffectOnMesh(GrassModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BodyModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(LampModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(MonumentModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BoyModel, Effect);
-            FuncionesGenerales.loadEffectOnMesh(BallModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(TreeModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(Tree1Model, Effect);
             FuncionesGenerales.loadEffectOnMesh(Tree2Model, Effect);
@@ -248,12 +252,13 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(BridgeModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BikeModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BenchModel, Effect);
-            FuncionesGenerales.loadEffectOnMesh(BallModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(PathModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BenchModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(SlideModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BirdModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(ArcoModel, Effect);
+            FuncionesGenerales.loadEffectOnMesh(BallModel, Effect);
+            FuncionesGenerales.loadEffectOnMesh(SphereModel, BallEffect);
 
             RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
 
@@ -406,16 +411,26 @@ namespace TGC.MonoGame.TP
 
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
             GraphicsDevice.Clear(Color.CornflowerBlue);
+
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
             generateLevel();
+
             Effect.Parameters["View"].SetValue(Camera.View);
             Effect.Parameters["Projection"].SetValue(Camera.Projection);
             BallEffect.Parameters["View"].SetValue(Camera.View);
             BallEffect.Parameters["Projection"].SetValue(Camera.Projection);
-            DrawCylinder(Cylinder, Checkpoint1Position);
-            DrawCylinder(Cylinder, Checkpoint2Position);
+            if (Checkpoint1==0)
+            {
+                DrawCylinder(Cylinder, Checkpoint1Position);
+            }
 
-            DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
+            if (Checkpoint2==0)
+            {
+                DrawCylinder(Cylinder, Checkpoint2Position);
+            }
+
+            DrawSphere(SpherePosition, 0f, Pitch, Roll);
+            //DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
 
            
           //  FuncionesGenerales.drawMesh(SphereModel,SphereWorld*Matrix.CreateTranslation(SpherePosition),BallEffect);
@@ -448,16 +463,23 @@ namespace TGC.MonoGame.TP
 
             base.UnloadContent();
         }
+        private void DrawSphere(Vector3 position, float yaw, float pitch, float roll)
+        {
+            BallEffect.Parameters["ModelTexture"]?.SetValue(RockTexture);
+            foreach (var mesh in SphereModel.Meshes)
+            {
+                BallWorld = mesh.ParentBone.Transform;
+                BallEffect.Parameters["World"].SetValue(Matrix.CreateScale(0.2f)*Matrix.CreateFromYawPitchRoll(yaw, pitch, roll) * Matrix.CreateTranslation(position));
+                mesh.Draw();
+            }
+        }
 
         private void DrawGeometry(GeometricPrimitive geometry, Vector3 position, float yaw, float pitch, float roll)
         {
-            var effect = BallEffect;
+            var effect = geometry.Effect;
 
-            effect.Parameters["World"].SetValue(Matrix.CreateFromYawPitchRoll(yaw, pitch, roll) * Matrix.CreateTranslation(position));
-            effect.Parameters["ModelTexture"]?.SetValue(RockTexture);
-            /* effect.View = Camera.View;
-            effect.Projection = Camera.Projection;
-*/
+            effect.World = Matrix.CreateFromYawPitchRoll(yaw, pitch, roll) * Matrix.CreateTranslation(position);
+           
             geometry.Draw(effect);
         }
 
@@ -466,19 +488,19 @@ namespace TGC.MonoGame.TP
 
             if (CheckPoint1Collide.Intersects(esfera))
             {
-                Checkpoint1 = true;
+                Checkpoint1 = 1;
 
             }
 
-            if (Checkpoint1 && CheckPoint2Collide.Intersects(esfera))
+            if (Checkpoint1==1 && CheckPoint2Collide.Intersects(esfera))
             {
-                Checkpoint2 = true;
+                Checkpoint2 = 1;
             }
 
 
 
 
-            if (Checkpoint1 && Checkpoint2 && FinishCollide.Intersects(esfera))
+            if (Checkpoint1==1 && Checkpoint2==1 && FinishCollide.Intersects(esfera))
             {
                 SpherePosition = new Vector3(2, 2, 2);
             }
@@ -488,26 +510,26 @@ namespace TGC.MonoGame.TP
         {
             if (BallCollide1.Intersects(esfera) || BallCollide2.Intersects(esfera) || BallCollide3.Intersects(esfera))
             {
-              /* no se porque no anda
-               if (Checkpoint1)
+              //no se porque no anda
+               if (Checkpoint1==1)
                 {
                     return Checkpoint1Position;
                 }
 
-                if (Checkpoint1 && Checkpoint2)
+                if (Checkpoint1==1 && Checkpoint2==1)
                 {
                     return Checkpoint2Position;
                 }
 
-                if (Checkpoint1! && Checkpoint2!)
+                if (Checkpoint1==0 && Checkpoint1==0!)
                 {
                     Exit();
-                    return  esfera.Center;
-                }*/
-              Exit();
+                    return  SpherePosition;
+                }
+             
 
             }
-            return  esfera.Center;
+            return  SpherePosition;
 
         }
 
