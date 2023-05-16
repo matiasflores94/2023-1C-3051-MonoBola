@@ -367,7 +367,7 @@
 /processorParam:TextureFormat=Compressed
 /build:Models/tree3/Lowpoly_tree_sample.fbx
 
-#begin Textures/esfera-piedra.jpg
+#begin Textures/esfera-piedra.png
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyColor=255,0,255,255
@@ -377,5 +377,5 @@
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
-/build:Textures/esfera-piedra.jpg
+/build:Textures/esfera-piedra.png
 
