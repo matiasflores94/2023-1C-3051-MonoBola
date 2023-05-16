@@ -125,6 +125,7 @@ namespace TGC.MonoGame.TP
         private float pastMousePositionY;
 
         private Effect SphereEffect { get; set; }
+        private Texture2D RockTexture { get; set; }
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
         ///     Escribir aqui el codigo de inicializacion: el procesamiento que podemos pre calcular para nuestro juego.
@@ -254,7 +255,7 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(BirdModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(ArcoModel, Effect);
 
-            //var RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
+            RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
 
             base.LoadContent();
         }
@@ -453,7 +454,7 @@ namespace TGC.MonoGame.TP
             var effect = BallEffect;
 
             effect.Parameters["World"].SetValue(Matrix.CreateFromYawPitchRoll(yaw, pitch, roll) * Matrix.CreateTranslation(position));
-            //effect.Parameters["ModelTexture"]?.SetValue(RockTexture);
+            effect.Parameters["ModelTexture"]?.SetValue(RockTexture);
             /* effect.View = Camera.View;
             effect.Projection = Camera.Projection;
 */
