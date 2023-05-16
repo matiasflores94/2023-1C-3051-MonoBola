@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using TGC.MonoGame.Samples.Cameras;
+using TGC.MonoGame.Samples.Collisions;
 using TGC.MonoGame.Samples.Geometries.Textures;
 using TGC.MonoGame.TP.Geometries;
 using TGC.MonoGame.TP.Extras;
@@ -44,6 +45,9 @@ namespace TGC.MonoGame.TP
         private const float CameraUpDistance = 30f;
         private const float SphereRotatingVelocity = 0.05f;
         private const float MouseSensitivity = -0.005f;
+        private const float CheckPointHeight = 5000;
+        private const float CheckPointRadius = 80;
+
 
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
@@ -88,7 +92,7 @@ namespace TGC.MonoGame.TP
         private Model BikeModel { get; set; }
         private Model ArcoModel { get; set; }
         private Matrix ArcoWorld { get; set; }
-
+        private Boolean god  { get; set; }
         private Matrix BikeWorld { get; set; }
         private QuadPrimitive Quad { get; set; }
         private Matrix WallWorld { get; set; }
@@ -98,10 +102,21 @@ namespace TGC.MonoGame.TP
         private Matrix SphereRotation { get; set; }
         private Vector3 SpherePosition { get; set; }
         private Vector3 Checkpoint1Position { get; set; }
+        private BoundingCylinder CheckPoint1Collide { get; set; }
+        private BoundingCylinder CheckPoint2Collide { get; set; }
+        private BoundingSphere SphereCollide { get; set; }
+        private BoundingSphere BallCollide1{ get; set; }
+        private BoundingSphere BallCollide2{ get; set; }
+        private BoundingSphere BallCollide3{ get; set; }
 
+
+        private OrientedBoundingBox FinishCollide { get; set; }
         private Vector3 Checkpoint2Position { get; set; }
         private Vector3 FinishPosition { get; set; }
-
+        private Boolean Checkpoint1{ get; set; }
+        private Boolean Checkpoint2{ get; set; }
+        private Boolean Finsh{ get; set; }
+        private Vector3 BirdPosition { get; set; }
         private Vector3 SphereFrontDirection { get; set; }
         private float Yaw { get; set; }
         private float Pitch { get; set; }
@@ -131,7 +146,7 @@ namespace TGC.MonoGame.TP
             // La logica de inicializacion que no depende del contenido se recomienda poner en este metodo.
             //Creacion de Esfera
             Sphere = new SpherePrimitive(GraphicsDevice, DIAMETER, 16, Color.Gold);
-            Cylinder = new CylinderPrimitive(GraphicsDevice, 5000, 200, 32);
+            Cylinder = new CylinderPrimitive(GraphicsDevice, CheckPointHeight, CheckPointRadius, 32);
 
             //Creacion de piso
             Quad = new QuadPrimitive(GraphicsDevice);
@@ -159,8 +174,21 @@ namespace TGC.MonoGame.TP
             PathWorld = Matrix.Identity;
             SlideWorld = Matrix.Identity;
             LampWorld = Matrix.Identity;
+            BirdPosition = new Vector3(-1000f, 150f, -1500f);
+            Checkpoint1 = false;
+            god = false;
             Checkpoint1Position = new Vector3(400, 0, -2000);
             Checkpoint2Position = new Vector3(-1680, 0, -2000);
+            CheckPoint1Collide = new BoundingCylinder(Checkpoint1Position,  CheckPointRadius,CheckPointHeight/2);
+            CheckPoint2Collide = new BoundingCylinder(Checkpoint2Position,CheckPointRadius,CheckPointHeight/2);
+            FinishPosition = new Vector3(-3200, 12f, -2000f);
+            FinishCollide = new OrientedBoundingBox(FinishPosition, new Vector3(200,200,200));
+     
+            SphereCollide = new BoundingSphere(SpherePosition, DIAMETER/2);
+            BallCollide1 = new BoundingSphere(new Vector3(400f, 12f, 0f + -200f), (DIAMETER/2)-1);
+            BallCollide2 = new BoundingSphere(new Vector3(350f, 12f, 0f + -400f), (DIAMETER/2)-1);
+            BallCollide3 = new BoundingSphere(new Vector3(450f, 12f, 0f + -600f), (DIAMETER/2)-1);
+
 
             BikeWorld = Matrix.Identity;
             pastMousePositionY = Mouse.GetState().Position.ToVector2().Y;
@@ -278,6 +306,11 @@ namespace TGC.MonoGame.TP
                 //Salgo del juego.
                 Exit();
             }
+            if (Keyboard.GetState().IsKeyDown(Keys.G))
+            {
+                //Salgo del juego.
+                god=false;
+            }
             
             /*if (Keyboard.GetState().IsKeyDown(Keys.LeftShift))
             {
@@ -337,76 +370,30 @@ namespace TGC.MonoGame.TP
                 SpherePosition = Position;
             }
 
-            /*if (Keyboard.GetState().IsKeyDown(Keys.W))
+           if (BirdPosition.Z > -1450f)
             {
-                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime;
-                Pitch += elapsedTime * currentSpeed / 2;
+                BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z+10f);
+                BirdWorld = Matrix.CreateTranslation(BirdPosition);
             }
 
-            if (Keyboard.GetState().IsKeyDown(Keys.S))
-            {
-                SpherePosition -= SphereFrontDirection * currentSpeed * elapsedTime;
-                Pitch -= elapsedTime * currentSpeed / 2;
-            }*/
+           else if(BirdPosition.Z < -1200f)
+           {
+               BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z-10f);
+               BirdWorld = Matrix.CreateTranslation(BirdPosition);
+           }
+           
 
-            /*if(Keyboard.GetState().IsKeyUp(Keys.W) && Keyboard.GetState().IsKeyUp(Keys.S)){
-	            if(acceleration>0f){
-		            acceleration -= 0.05f;
-	            }else if(acceleration<0f){
-		            acceleration += 0.05f;
-	            }else{
-                    acceleration = 0f;
-                }
-                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime * acceleration;
-            }
 
-            if (Keyboard.GetState().IsKeyDown(Keys.W))
-            {
-                if(acceleration<=25f){
-                    acceleration += 0.05f;
-                }
-                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime * acceleration;
-                Pitch += elapsedTime * currentSpeed / 2;
-            }
 
-            if (Keyboard.GetState().IsKeyDown(Keys.S))
-            {
-                if(acceleration>=-25f){
-                    acceleration -= 0.05f;
-                }
-                SpherePosition += SphereFrontDirection * currentSpeed * elapsedTime * acceleration;
-                Pitch -= elapsedTime * currentSpeed / 2;
-            }
-
-            if (Keyboard.GetState().IsKeyDown(Keys.A))
-            {
-                SpherePosition -= Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
-                Roll += elapsedTime * currentSpeed / 2;
-            }
-
-            if (Keyboard.GetState().IsKeyDown(Keys.D))
-            {
-                SpherePosition += Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
-                Roll -= elapsedTime * currentSpeed / 2;
-            }
+            SphereCollide= new BoundingSphere(SpherePosition,DIAMETER/2);
             
-            if (Keyboard.GetState().IsKeyDown(Keys.Space) || Keyboard.GetState().IsKeyDown(Keys.Up))
-            {
-                SpherePosition += Vector3.Up * currentSpeed * elapsedTime;
-            }
-
-            if (Keyboard.GetState().IsKeyDown(Keys.LeftControl) || Keyboard.GetState().IsKeyDown(Keys.Down))
-            {
-                SpherePosition += Vector3.Down * currentSpeed * elapsedTime;
-            }
-
-            if (Keyboard.GetState().IsKeyDown(Keys.R))
-            {
-                SpherePosition = new Vector3(SpherePosition.X, 15, SpherePosition.Z);
-            }*/
-
-
-
+            //Dejar siempre al final del update porque necesita la posicion ya calculada
+            SpherePosition=collisionObstacle(SphereCollide);
+            
+            collisionCheckpoint(SphereCollide);
+            
+            
+            
             moverCamaraMouse();
             UpdateCamera();
 
@@ -454,7 +441,7 @@ namespace TGC.MonoGame.TP
 
         }
         
-
+        
         /// <summary>
         ///     Libero los recursos que se cargaron en el juego.
         /// </summary>
@@ -477,8 +464,80 @@ namespace TGC.MonoGame.TP
             geometry.Draw(effect);
         }
 
-    private void generateLevel()
-    {
+        private void collisionCheckpoint(BoundingSphere esfera)
+        {
+
+            if (CheckPoint1Collide.Intersects(esfera))
+            {
+                Checkpoint1 = true;
+
+            }
+
+            if (Checkpoint1 && CheckPoint2Collide.Intersects(esfera))
+            {
+                Checkpoint2 = true;
+            }
+
+
+
+
+            if (Checkpoint1 && Checkpoint2 && FinishCollide.Intersects(esfera))
+            {
+                SpherePosition = new Vector3(2, 2, 2);
+            }
+        }
+
+        private Vector3 collisionObstacle(BoundingSphere esfera)
+        {
+            if (BallCollide1.Intersects(esfera) || BallCollide2.Intersects(esfera) || BallCollide3.Intersects(esfera))
+            {
+              /* no se porque no anda
+               if (Checkpoint1)
+                {
+                    return Checkpoint1Position;
+                }
+
+                if (Checkpoint1 && Checkpoint2)
+                {
+                    return Checkpoint2Position;
+                }
+
+                if (Checkpoint1! && Checkpoint2!)
+                {
+                    Exit();
+                    return  esfera.Center;
+                }*/
+              Exit();
+
+            }
+            return  esfera.Center;
+
+        }
+
+/*
+        private void loss()
+        {
+            //if (god!)
+            //{
+                if (Checkpoint1)
+                {
+                    SpherePosition = Checkpoint1Position;
+                }
+
+                if (Checkpoint1 && Checkpoint2)
+                {
+                    SpherePosition = Checkpoint2Position;
+                }
+
+                if (Checkpoint1! && Checkpoint2!)
+                {
+
+                }
+            //}
+        }
+*/
+        private void generateLevel()
+        {
         Effect.Parameters["DiffuseColor"].SetValue(Color.DarkGreen.ToVector3());
 
         for (float i = 0; i < 40; i++)
@@ -580,7 +639,8 @@ namespace TGC.MonoGame.TP
                                                     Matrix.CreateTranslation(400f, 12f, 0f + -200f));
                 mesh.Draw();
             }
-            
+
+   
             foreach (var mesh in BallModel.Meshes)
             {
                 BallWorld = mesh.ParentBone.Transform;
@@ -602,7 +662,7 @@ namespace TGC.MonoGame.TP
                 BirdWorld = mesh.ParentBone.Transform;
                 Effect.Parameters["World"].SetValue(BirdWorld * 
                                                     Matrix.CreateScale(3f) *
-                                                    Matrix.CreateTranslation(-1000f, 300f, -1500f));
+                                                    Matrix.CreateTranslation(BirdPosition));
                 mesh.Draw();
             }
             foreach (var mesh in ArcoModel.Meshes)
