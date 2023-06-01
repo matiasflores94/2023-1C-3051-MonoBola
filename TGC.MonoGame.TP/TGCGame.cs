@@ -13,6 +13,7 @@ using TGC.MonoGame.Samples.Collisions;
 using TGC.MonoGame.Samples.Geometries.Textures;
 using TGC.MonoGame.TP.Geometries;
 using TGC.MonoGame.TP.Extras;
+using TGC.MonoGame.TP.SkyBoxSpace;
 
 namespace TGC.MonoGame.TP
 {
@@ -88,6 +89,7 @@ namespace TGC.MonoGame.TP
         private Matrix LampWorld { get; set; }
 
         private Model StarModel { get; set; }
+        
         private Model BirdModel { get; set; }
         private Matrix BirdWorld { get; set; }
 
@@ -116,6 +118,8 @@ namespace TGC.MonoGame.TP
         private BoundingCylinder CheckPoint1Collide { get; set; }
         private BoundingCylinder CheckPoint2Collide { get; set; }
         private BoundingSphere SphereCollide { get; set; }
+        private BoundingSphere StarCollide { get; set; }
+
         private BoundingSphere BallCollide1{ get; set; }
         private BoundingSphere BallCollide2{ get; set; }
         private BoundingSphere BallCollide3{ get; set; }
@@ -128,6 +132,7 @@ namespace TGC.MonoGame.TP
         private OrientedBoundingBox Pared3 { get; set; }
         private OrientedBoundingBox Pared4 { get; set; }
       
+        private OrientedBoundingBox SlideCollide { get; set; }
 
         private Vector3 Checkpoint2Position { get; set; }
         private Vector3 FinishPosition { get; set; }
@@ -152,6 +157,11 @@ namespace TGC.MonoGame.TP
 
         private Effect SphereEffect { get; set; }
         private Texture2D RockTexture { get; set; }
+        private TextureCube SkyBoxTexture { get; set; }
+        private Model SkyBoxModel { get; set; }
+        private Effect SkyBoxEffect { get; set; }
+        private SkyBox SkyBox { get; set; }
+
         private Texture2D MetalTexture { get; set; }
         private Texture2D RubberTexture { get; set; }
         private Texture2D BallTexture { get; set; }
@@ -171,10 +181,10 @@ namespace TGC.MonoGame.TP
             rasterizerState.CullMode = CullMode.None;
             GraphicsDevice.RasterizerState = rasterizerState;
             
-           /*  Graphics.PreferredBackBufferWidth =
+             Graphics.PreferredBackBufferWidth =
                  GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
              Graphics.PreferredBackBufferHeight =
-                 GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;*/
+                 GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
                Graphics.ApplyChanges();
             Camera = new TargetCamera(GraphicsDevice.Viewport.AspectRatio, Vector3.One * 100f, SpherePosition);
             // La logica de inicializacion que no depende del contenido se recomienda poner en este metodo.
@@ -222,17 +232,20 @@ namespace TGC.MonoGame.TP
             Pared3 = new OrientedBoundingBox(new Vector3(-1445,500,-1760), new Vector3(1740,2000,1));
             Pared4 = new OrientedBoundingBox(new Vector3(-1327.5f,500,-2240), new Vector3(1900,2000,1));
             AguaCollide = new OrientedBoundingBox(new Vector3(500,0,-1150), new Vector3(500,7,300));
-            ArenaCollide = new OrientedBoundingBox(new Vector3(-920, 4, -2550), new Vector3(500, 1 ,800));
+            ArenaCollide = new OrientedBoundingBox(new Vector3(-940, 4, -2550), new Vector3(500, 1 ,800));
+            SlideCollide = new OrientedBoundingBox(new Vector3(-450, 20, -2000), new Vector3(80, 190 ,100));
+            
+            SlideCollide.Rotate(Matrix.CreateRotationX(MathHelper.PiOver2));
             /*Pared7 = new BoundingBox(FinishPosition, new Vector3(200,200,200));
             Pared8 = new BoundingBox(FinishPosition, new Vector3(200,200,200));*/
-
+            StarCollide = new BoundingSphere(new Vector3(400f, 5f, -100f), 18f);
             SphereCollide = new BoundingSphere(SpherePosition, DIAMETER/2);
             BallCollide1 = new BoundingSphere(new Vector3(400f, 12f, 0f + -200f), (DIAMETER/2)-1);
             BallCollide2 = new BoundingSphere(new Vector3(350f, 12f, 0f + -400f), (DIAMETER/2)-1);
             BallCollide3 = new BoundingSphere(new Vector3(450f, 12f, 0f + -600f), (DIAMETER/2)-1);
             BridgePosition = new Vector3(400f, -230f, -1300f);
             BridgeCollision = new BoundingSphere(BridgePosition, 320f);
-
+            
             Test = new SpherePrimitive(GraphicsDevice, 320f*2f, 16, Color.Silver);
 
 
@@ -241,6 +254,7 @@ namespace TGC.MonoGame.TP
             IsMouseVisible = false;
             Mouse.SetPosition(GraphicsDevice.Viewport.Bounds.Height/2,GraphicsDevice.Viewport.Bounds.Width/2);
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
+          
             base.Initialize();
         }
 
@@ -266,17 +280,20 @@ namespace TGC.MonoGame.TP
             StarModel = Content.Load<Model>(ContentFolder3D + "star/Gold_Star");
             BenchModel = Content.Load<Model>(ContentFolder3D + "bench/uploads_files_3982311_Bench");
             PathModel = Content.Load<Model>(ContentFolder3D + "path/cobblestone lowpoly");
-            SlideModel = Content.Load<Model>(ContentFolder3D + "slide/Hill");
+            SlideModel = Content.Load<Model>(ContentFolder3D + "slide/ramp");
             BikeModel = Content.Load<Model>(ContentFolder3D + "bike/Bicicle");
             LampModel = Content.Load<Model>(ContentFolder3D + "lamp/streetlamp");
             BirdModel = Content.Load<Model>(ContentFolder3D + "bird/bird");
             ArcoModel = Content.Load<Model>(ContentFolder3D + "arco/Soccergoal");
             SphereModel = Content.Load<Model>(ContentFolder3D + "ball/ball");
+            SkyBoxModel = Content.Load<Model>(ContentFolder3D + "skybox/cube");
+
             font = Content.Load<SpriteFont>("Font/File");
             // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
             BallEffect = Content.Load<Effect>(ContentFolderEffects + "BallShader");
+            SkyBoxEffect = Content.Load<Effect>(ContentFolderEffects + "SkyBox");
 
             FuncionesGenerales.loadEffectOnMesh(GrassModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BodyModel, Effect);
@@ -300,12 +317,20 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(SphereModel, BallEffect);
             //BridgeModel.Meshes.Get.GetVerticesAndIndicesFromModel.
             //ConvexHullHelper.CreateShape(BridgeModel.Bones., ,,);
+            SkyBoxTexture = Content.Load<TextureCube>(ContentFolderTextures + "skybox");
+
             RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
             MetalTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-metal");
             RubberTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-goma");
+            SkyBox = new SkyBox(SkyBoxModel,SkyBoxTexture,SkyBoxEffect);
             base.LoadContent();
         }
-
+        private float Angle { get; set; }
+        private Vector3 CameraPosition { get; set; }
+        private Vector3 CameraTarget { get; set; }
+        private float Distance { get; set; }
+        private Matrix View { get; set; }
+        private Vector3 ViewVector { get; set; }
         private void UpdateCamera() //Sacado de Samples.ThirdPersonPlatformer
         {
             // Create a position that orbits the Robot by its direction (Rotation)
@@ -343,7 +368,7 @@ namespace TGC.MonoGame.TP
         private const float GRAVITY = -200.0f;
         private const float FRICTION = 0.99995f;
         private float JumpSpeed = 100f;
-
+        private bool drawStar = true;
         protected override void Update(GameTime gameTime)
         {
             // Aca deberiamos poner toda la logica de actualizacion del juego.
@@ -363,7 +388,7 @@ namespace TGC.MonoGame.TP
             }
 
             isOnGround = MathF.Abs(SpherePosition.Y) <= 10f /*float.Epsilon*/;
-            if (BridgeCollision.Intersects(SphereCollide) )
+            if (BridgeCollision.Intersects(SphereCollide) || SlideCollide.Intersects(SphereCollide) )
             {
                 isOnGround = true;
             }
@@ -412,14 +437,20 @@ namespace TGC.MonoGame.TP
                 Acceleration = Vector3.Zero;
             }
 
-            if (!BridgeCollision.Intersects(SphereCollide)){
+            if (!BridgeCollision.Intersects(SphereCollide) || !SlideCollide.Intersects(SphereCollide)){
                 Acceleration.Y = GRAVITY;
             }
 
             if(Keyboard.GetState().IsKeyDown(Keys.Space) && isOnGround){
                 Velocity.Y += JumpSpeed;
             }
-            
+
+            if (StarCollide.Intersects(SphereCollide))
+            {
+                Velocity = new Vector3 (Velocity.X * 1.2f, Velocity.Y, Velocity.Z * 1.2f);
+                drawStar = false;
+            }
+
             Velocity += Acceleration * elapsedTime;
 
             SpherePosition += Velocity * elapsedTime;
@@ -434,23 +465,29 @@ namespace TGC.MonoGame.TP
                 SpherePosition = Position;
             }
 
-            if(BirdPosition.Z > -1450f)
+            if(BirdPosition.Z <= (-1*1450f))
             {
                 BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z+10f);
                 BirdWorld = Matrix.CreateTranslation(BirdPosition);
             }
-            else if(BirdPosition.Z < -1200f)
+            if(BirdPosition.Z >= (-1f*1190f))
             {
                 BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z-10f);
                 BirdWorld = Matrix.CreateTranslation(BirdPosition);
             }
 
 
-            if (BridgeCollision.Intersects(SphereCollide))
+            if (BridgeCollision.Intersects(SphereCollide) )
             {
                 SpherePosition = SpherePosition + new Vector3(0,1f,0);
             }
 
+            if (SlideCollide.Intersects(SphereCollide))
+            {
+                Velocity= Velocity + new Vector3(0,30f,0);
+                SpherePosition = SpherePosition + new Vector3(0,20f,0);
+
+            }
             if (BridgeCollision.Contains(SphereCollide) == ContainmentType.Contains)
             {
                 Velocity *= 0.1f;
@@ -462,11 +499,11 @@ namespace TGC.MonoGame.TP
             SpherePosition=collisionObstacle(SphereCollide);
             
             collisionCheckpoint(SphereCollide);
-            alive = isOnTrack();
+            /*alive = isOnTrack();
             if (!alive)
             {
-                Loss();
-            }
+               SpherePosition= Loss();
+            }*/
             
             moverCamaraMouse();
             UpdateCamera();
@@ -477,7 +514,6 @@ namespace TGC.MonoGame.TP
         private bool isOnTrack()
         {
             if (Pared1.Intersects(SphereCollide) || Pared2.Intersects(SphereCollide) || Pared3.Intersects(SphereCollide) || Pared4.Intersects(SphereCollide) || AguaCollide.Intersects(SphereCollide) || ArenaCollide.Intersects(SphereCollide)){
-                Debug.Write("SI");
                 return false;
             }
 
@@ -488,14 +524,24 @@ namespace TGC.MonoGame.TP
         ///     Se llama cada vez que hay que refrescar la pantalla.
         ///     Escribir aqui el codigo referido al renderizado.
         /// </summary>
+ 
         
         protected override void Draw(GameTime gameTime)
         {
-          
+            
 
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+           
+            View = Matrix.CreateLookAt(Camera.Position, Camera.TargetPosition, Vector3.UnitY);
 
+            GraphicsDevice.Clear(Color.CornflowerBlue);
+            var originalRasterizerState = GraphicsDevice.RasterizerState;
+            var rasterizerState = new RasterizerState();
+            rasterizerState.CullMode = CullMode.None;
+            Graphics.GraphicsDevice.RasterizerState = rasterizerState;
+            SkyBox.Draw(View, Camera.Projection, Camera.Position);
+
+            GraphicsDevice.RasterizerState = originalRasterizerState;
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
             generateLevel();
 
@@ -503,7 +549,6 @@ namespace TGC.MonoGame.TP
             Effect.Parameters["Projection"].SetValue(Camera.Projection);
             BallEffect.Parameters["View"].SetValue(Camera.View);
             BallEffect.Parameters["Projection"].SetValue(Camera.Projection);
-            
             if (Checkpoint1==0)
             {
                 DrawCylinder(Cylinder, Checkpoint1Position);
@@ -516,6 +561,8 @@ namespace TGC.MonoGame.TP
           //  DrawGeometry(Test,BridgePosition,0,0,0);
             DrawSphere(SpherePosition, 0f, Pitch, Roll);
             //DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
+   
+          
 
            
           //  FuncionesGenerales.drawMesh(SphereModel,SphereWorld*Matrix.CreateTranslation(SpherePosition),BallEffect);
@@ -612,7 +659,7 @@ namespace TGC.MonoGame.TP
                     return Checkpoint2Position;
                 }
 
-                if (Checkpoint1 == 0 && Checkpoint1 == 0!)
+                if (Checkpoint1 == 0 && Checkpoint1 == 0)
                 {
                     Exit();
                     return SpherePosition;
@@ -729,9 +776,9 @@ namespace TGC.MonoGame.TP
         foreach (var mesh in SlideModel.Meshes)
         {
             SlideWorld = mesh.ParentBone.Transform;
-            Effect.Parameters["World"].SetValue(SlideWorld * Matrix.CreateScale(0.8f) *
-                                                Matrix.CreateRotationY(-1 * MathHelper.PiOver2) *
-                                                Matrix.CreateTranslation(-650f, 6f, -2000f));
+            Effect.Parameters["World"].SetValue(SlideWorld * Matrix.CreateScale(140f) *
+                                                Matrix.CreateRotationY(-MathHelper.PiOver2) *
+                                                Matrix.CreateTranslation(-520f, 6f, -2000f));
             mesh.Draw();
         }
 
@@ -910,14 +957,16 @@ namespace TGC.MonoGame.TP
         }
 
         Effect.Parameters["DiffuseColor"].SetValue(Color.Yellow.ToVector3());
-
-        foreach (var mesh in StarModel.Meshes)
+        if (drawStar)
         {
-            StarWorld = mesh.ParentBone.Transform;
-            Effect.Parameters["World"].SetValue(StarWorld * Matrix.CreateScale(1f) *
-                                                Matrix.CreateRotationY(MathHelper.PiOver2) *
-                                                Matrix.CreateTranslation(400f, 20f, -100f));
-            mesh.Draw();
+            foreach (var mesh in StarModel.Meshes)
+            {
+                StarWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(StarWorld * Matrix.CreateScale(1f) *
+                                                    Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                                    Matrix.CreateTranslation(400f, 5f, -100f));
+                mesh.Draw();
+            }
         }
 
         for (float i = 0; i < 5; i++)
