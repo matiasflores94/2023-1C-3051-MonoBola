@@ -1,7 +1,12 @@
 ﻿using System;
+using System.Diagnostics;
 using BepuPhysics.Collidables;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
+using System.Linq;
+using BepuPhysics.CollisionDetection.CollisionTasks;
+using BepuUtilities.Memory;
 using Microsoft.Xna.Framework.Input;
 using TGC.MonoGame.Samples.Cameras;
 using TGC.MonoGame.Samples.Collisions;
@@ -47,7 +52,8 @@ namespace TGC.MonoGame.TP
         private const float MouseSensitivity = -0.005f;
         private const float CheckPointHeight = 5000;
         private const float CheckPointRadius = 80;
-
+        private bool alive;
+        private SpriteBatch spriteBatch { get; set; }
 
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
@@ -99,6 +105,8 @@ namespace TGC.MonoGame.TP
         private Matrix WallWorld { get; set; }
         private QuadPrimitive QuadWall { get; set; }
         private SpherePrimitive Sphere { get; set; }
+        private SpherePrimitive Test { get; set; }
+
         private CylinderPrimitive Cylinder { get; set; }
         private Matrix SphereRotation { get; set; }
         private Matrix SphereWorld { get; set; }
@@ -112,30 +120,47 @@ namespace TGC.MonoGame.TP
         private BoundingSphere BallCollide2{ get; set; }
         private BoundingSphere BallCollide3{ get; set; }
 
-
         private OrientedBoundingBox FinishCollide { get; set; }
+        private OrientedBoundingBox Pared1 { get; set; }
+        private OrientedBoundingBox AguaCollide { get; set; }
+
+        private OrientedBoundingBox Pared2 { get; set; }
+        private OrientedBoundingBox Pared3 { get; set; }
+        private OrientedBoundingBox Pared4 { get; set; }
+      
+
         private Vector3 Checkpoint2Position { get; set; }
         private Vector3 FinishPosition { get; set; }
         private int Checkpoint1;
         private int Checkpoint2;
+        private bool isOnGround;
         private Boolean Finsh{ get; set; }
         private Vector3 BirdPosition { get; set; }
+        private BoundingSphere BridgeCollision { get; set; }
+        private BoundingSphere BDCollide { get; set; }
+
         private Vector3 SphereFrontDirection { get; set; }
+        
         private float Yaw { get; set; }
         private float Pitch { get; set; }
         private float Roll { get; set; }
         private float elapsedTime { get; set; }
         private float pastMousePositionY;
+        private SpriteFont font;
+        public OrientedBoundingBox ArenaCollide { get; set; }
+
 
         private Effect SphereEffect { get; set; }
         private Texture2D RockTexture { get; set; }
         private Texture2D MetalTexture { get; set; }
         private Texture2D RubberTexture { get; set; }
         private Texture2D BallTexture { get; set; }
+
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
         ///     Escribir aqui el codigo de inicializacion: el procesamiento que podemos pre calcular para nuestro juego.
         /// </summary>
+        private Vector3 BridgePosition;
         protected override void Initialize()
         {
           
@@ -146,20 +171,18 @@ namespace TGC.MonoGame.TP
             rasterizerState.CullMode = CullMode.None;
             GraphicsDevice.RasterizerState = rasterizerState;
             
-             Graphics.PreferredBackBufferWidth =
+           /*  Graphics.PreferredBackBufferWidth =
                  GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
              Graphics.PreferredBackBufferHeight =
-                 GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+                 GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;*/
                Graphics.ApplyChanges();
             Camera = new TargetCamera(GraphicsDevice.Viewport.AspectRatio, Vector3.One * 100f, SpherePosition);
             // La logica de inicializacion que no depende del contenido se recomienda poner en este metodo.
             //Creacion de Esfera
             Sphere = new SpherePrimitive(GraphicsDevice, DIAMETER, 16, Color.Gold);
             Cylinder = new CylinderPrimitive(GraphicsDevice, CheckPointHeight, CheckPointRadius, 32);
+            
 
-            //Creacion de piso
-            Quad = new QuadPrimitive(GraphicsDevice);
-            QuadWall = new QuadPrimitive(GraphicsDevice);
             // Configuramos nuestras matrices de la escena.
             var Alto = GraphicsDevice.Viewport.Bounds.Height;
             var Ancho = GraphicsDevice.Viewport.Bounds.Width;
@@ -186,7 +209,7 @@ namespace TGC.MonoGame.TP
             BirdPosition = new Vector3(-1000f, 150f, -1500f);
             Checkpoint1 = 0;
             Checkpoint2 = 0;
-
+            spriteBatch = new SpriteBatch(GraphicsDevice);
             god = false;
             Checkpoint1Position = new Vector3(400, 0, -2000);
             Checkpoint2Position = new Vector3(-1680, 0, -2000);
@@ -194,11 +217,23 @@ namespace TGC.MonoGame.TP
             CheckPoint2Collide = new BoundingCylinder(Checkpoint2Position,CheckPointRadius,CheckPointHeight/2);
             FinishPosition = new Vector3(-3200, 12f, -2000f);
             FinishCollide = new OrientedBoundingBox(FinishPosition, new Vector3(200,200,200));
-     
+            Pared1 = new OrientedBoundingBox(new Vector3(280,500,-750), new Vector3(1,500,1000));
+            Pared2 = new OrientedBoundingBox(new Vector3(520,500,-950), new Vector3(1,500,1200));
+            Pared3 = new OrientedBoundingBox(new Vector3(-1445,500,-1760), new Vector3(1740,2000,1));
+            Pared4 = new OrientedBoundingBox(new Vector3(-1327.5f,500,-2240), new Vector3(1900,2000,1));
+            AguaCollide = new OrientedBoundingBox(new Vector3(500,0,-1150), new Vector3(500,7,300));
+            ArenaCollide = new OrientedBoundingBox(new Vector3(-920, 4, -2550), new Vector3(500, 1 ,800));
+            /*Pared7 = new BoundingBox(FinishPosition, new Vector3(200,200,200));
+            Pared8 = new BoundingBox(FinishPosition, new Vector3(200,200,200));*/
+
             SphereCollide = new BoundingSphere(SpherePosition, DIAMETER/2);
             BallCollide1 = new BoundingSphere(new Vector3(400f, 12f, 0f + -200f), (DIAMETER/2)-1);
             BallCollide2 = new BoundingSphere(new Vector3(350f, 12f, 0f + -400f), (DIAMETER/2)-1);
             BallCollide3 = new BoundingSphere(new Vector3(450f, 12f, 0f + -600f), (DIAMETER/2)-1);
+            BridgePosition = new Vector3(400f, -230f, -1300f);
+            BridgeCollision = new BoundingSphere(BridgePosition, 320f);
+
+            Test = new SpherePrimitive(GraphicsDevice, 320f*2f, 16, Color.Silver);
 
 
             BikeWorld = Matrix.Identity;
@@ -208,6 +243,7 @@ namespace TGC.MonoGame.TP
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
             base.Initialize();
         }
+
 
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo, despues de Initialize.
@@ -236,7 +272,7 @@ namespace TGC.MonoGame.TP
             BirdModel = Content.Load<Model>(ContentFolder3D + "bird/bird");
             ArcoModel = Content.Load<Model>(ContentFolder3D + "arco/Soccergoal");
             SphereModel = Content.Load<Model>(ContentFolder3D + "ball/ball");
-
+            font = Content.Load<SpriteFont>("Font/File");
             // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
@@ -262,11 +298,11 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(ArcoModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BallModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(SphereModel, BallEffect);
-
+            //BridgeModel.Meshes.Get.GetVerticesAndIndicesFromModel.
+            //ConvexHullHelper.CreateShape(BridgeModel.Bones., ,,);
             RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
             MetalTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-metal");
             RubberTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-goma");
-
             base.LoadContent();
         }
 
@@ -320,15 +356,21 @@ namespace TGC.MonoGame.TP
                 //Salgo del juego.
                 Exit();
             }
+
             if (Keyboard.GetState().IsKeyDown(Keys.G))
             {
-                //Salgo del juego.
-                god=false;
+                god = !god;
             }
 
-            var isOnGround = MathF.Abs(SpherePosition.Y) <= 10f/*float.Epsilon*/;
+            isOnGround = MathF.Abs(SpherePosition.Y) <= 10f /*float.Epsilon*/;
+            if (BridgeCollision.Intersects(SphereCollide) )
+            {
+                isOnGround = true;
+            }
 
-            if(isOnGround){
+
+            if (isOnGround)
+            {
                 if (Keyboard.GetState().IsKeyDown(Keys.A))
                 {
                     /*Acceleration = Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
@@ -345,33 +387,46 @@ namespace TGC.MonoGame.TP
                     Roll -= elapsedTime * currentSpeed / 2;
                 }
 
-                if(Keyboard.GetState().IsKeyDown(Keys.W)){
+                if (Keyboard.GetState().IsKeyDown(Keys.W))
+                {
                     Acceleration = SphereFrontDirection * HORIZONTAL_ACC;
                     Pitch += elapsedTime * currentSpeed / 2;
-                }else if(Keyboard.GetState().IsKeyDown(Keys.S)){
+                }
+                else if (Keyboard.GetState().IsKeyDown(Keys.S))
+                {
                     Acceleration = -SphereFrontDirection * HORIZONTAL_ACC;
                     Pitch -= elapsedTime * currentSpeed / 2;
-                }else{
+                }
+                else
+                {
                     var HorizontalVelocity = -Velocity;
                     HorizontalVelocity.Y = 0f;
                     Acceleration = -Velocity * FRICTION;
                 }
-            }else{
+
+
+
+            }
+            else
+            {
                 Acceleration = Vector3.Zero;
             }
-            
-            Acceleration.Y = GRAVITY;
+
+            if (!BridgeCollision.Intersects(SphereCollide)){
+                Acceleration.Y = GRAVITY;
+            }
 
             if(Keyboard.GetState().IsKeyDown(Keys.Space) && isOnGround){
                 Velocity.Y += JumpSpeed;
             }
-
+            
             Velocity += Acceleration * elapsedTime;
+
             SpherePosition += Velocity * elapsedTime;
 
+           
             if(SpherePosition.Y <= 10f){
                 Velocity.Y = 0f;
-
                 //no se por qué tira error de que no se puede asignar directamente a SpherePosition.Y
                 //de momento lo soluciono con esto
                 Vector3 Position = SpherePosition;
@@ -379,34 +434,54 @@ namespace TGC.MonoGame.TP
                 SpherePosition = Position;
             }
 
-           if (BirdPosition.Z > -1450f)
+            if(BirdPosition.Z > -1450f)
             {
                 BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z+10f);
                 BirdWorld = Matrix.CreateTranslation(BirdPosition);
             }
-
-           else if(BirdPosition.Z < -1200f)
-           {
-               BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z-10f);
-               BirdWorld = Matrix.CreateTranslation(BirdPosition);
-           }
-           
+            else if(BirdPosition.Z < -1200f)
+            {
+                BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z-10f);
+                BirdWorld = Matrix.CreateTranslation(BirdPosition);
+            }
 
 
+            if (BridgeCollision.Intersects(SphereCollide))
+            {
+                SpherePosition = SpherePosition + new Vector3(0,1f,0);
+            }
 
+            if (BridgeCollision.Contains(SphereCollide) == ContainmentType.Contains)
+            {
+                Velocity *= 0.1f;
+                SpherePosition = SpherePosition + new Vector3(0,DIAMETER/2,0);
+            }
             SphereCollide= new BoundingSphere(SpherePosition,DIAMETER/2);
             
             //Dejar siempre al final del update porque necesita la posicion ya calculada
             SpherePosition=collisionObstacle(SphereCollide);
             
             collisionCheckpoint(SphereCollide);
-            
-            
+            alive = isOnTrack();
+            if (!alive)
+            {
+                Loss();
+            }
             
             moverCamaraMouse();
             UpdateCamera();
 
             base.Update(gameTime);
+        }
+
+        private bool isOnTrack()
+        {
+            if (Pared1.Intersects(SphereCollide) || Pared2.Intersects(SphereCollide) || Pared3.Intersects(SphereCollide) || Pared4.Intersects(SphereCollide) || AguaCollide.Intersects(SphereCollide) || ArenaCollide.Intersects(SphereCollide)){
+                Debug.Write("SI");
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -416,6 +491,7 @@ namespace TGC.MonoGame.TP
         
         protected override void Draw(GameTime gameTime)
         {
+          
 
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
             GraphicsDevice.Clear(Color.CornflowerBlue);
@@ -427,6 +503,7 @@ namespace TGC.MonoGame.TP
             Effect.Parameters["Projection"].SetValue(Camera.Projection);
             BallEffect.Parameters["View"].SetValue(Camera.View);
             BallEffect.Parameters["Projection"].SetValue(Camera.Projection);
+            
             if (Checkpoint1==0)
             {
                 DrawCylinder(Cylinder, Checkpoint1Position);
@@ -436,13 +513,19 @@ namespace TGC.MonoGame.TP
             {
                 DrawCylinder(Cylinder, Checkpoint2Position);
             }
-
+          //  DrawGeometry(Test,BridgePosition,0,0,0);
             DrawSphere(SpherePosition, 0f, Pitch, Roll);
             //DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
 
            
           //  FuncionesGenerales.drawMesh(SphereModel,SphereWorld*Matrix.CreateTranslation(SpherePosition),BallEffect);
     
+          /*spriteBatch.Begin();
+ 
+          spriteBatch.DrawString(font, SpherePosition.ToString(), new Vector2(100,20), Color.Black);
+          spriteBatch.End();*/
+          
+
 
         }
 
@@ -487,10 +570,12 @@ namespace TGC.MonoGame.TP
             var effect = geometry.Effect;
 
             effect.World = Matrix.CreateFromYawPitchRoll(yaw, pitch, roll) * Matrix.CreateTranslation(position);
-           
+            effect.View = Camera.View;
+            effect.Projection = Camera.Projection;
+
             geometry.Draw(effect);
         }
-
+    
         private void collisionCheckpoint(BoundingSphere esfera)
         {
 
@@ -514,57 +599,51 @@ namespace TGC.MonoGame.TP
             }
         }
 
+        private Vector3 Loss()
+        {
+            
+                if (Checkpoint1 == 1)
+                {
+                    return Checkpoint1Position;
+                }
+
+                if (Checkpoint1 == 1 && Checkpoint2 == 1)
+                {
+                    return Checkpoint2Position;
+                }
+
+                if (Checkpoint1 == 0 && Checkpoint1 == 0!)
+                {
+                    Exit();
+                    return SpherePosition;
+                }
+            
+
+            return  SpherePosition;
+        }
         private Vector3 collisionObstacle(BoundingSphere esfera)
         {
             if (BallCollide1.Intersects(esfera) || BallCollide2.Intersects(esfera) || BallCollide3.Intersects(esfera))
             {
               //no se porque no anda
-               if (Checkpoint1==1)
-                {
-                    return Checkpoint1Position;
-                }
 
-                if (Checkpoint1==1 && Checkpoint2==1)
-                {
-                    return Checkpoint2Position;
-                }
-
-                if (Checkpoint1==0 && Checkpoint1==0!)
-                {
-                    Exit();
-                    return  SpherePosition;
-                }
-             
+              return Loss();
 
             }
             return  SpherePosition;
 
         }
 
-/*
-        private void loss()
-        {
-            //if (god!)
-            //{
-                if (Checkpoint1)
-                {
-                    SpherePosition = Checkpoint1Position;
-                }
-
-                if (Checkpoint1 && Checkpoint2)
-                {
-                    SpherePosition = Checkpoint2Position;
-                }
-
-                if (Checkpoint1! && Checkpoint2!)
-                {
-
-                }
-            //}
-        }
-*/
         private void generateLevel()
+        
         {
+            /*
+            var Alto = GraphicsDevice.Viewport.Bounds.Height;
+            var Ancho = GraphicsDevice.Viewport.Bounds.Width;
+            Debug.Write(Alto);
+            var a100 = (1920f / 800f) * 100f;
+            Debug.Write(Ancho);
+           // var Alto100=*/
         Effect.Parameters["DiffuseColor"].SetValue(Color.DarkGreen.ToVector3());
 
         for (float i = 0; i < 40; i++)
@@ -808,11 +887,13 @@ namespace TGC.MonoGame.TP
 
         foreach (var mesh in BridgeModel.Meshes)
         {
+
             BridgeWorld = mesh.ParentBone.Transform;
             Effect.Parameters["World"].SetValue(BridgeWorld * Matrix.CreateScale(100f) *
                                                 Matrix.CreateRotationX(-1f * MathHelper.PiOver2) *
                                                 Matrix.CreateRotationY(MathHelper.PiOver2) *
                                                 Matrix.CreateTranslation(400f, 0f, -1300f));
+    
             mesh.Draw();
         }
 
