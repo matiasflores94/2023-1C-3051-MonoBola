@@ -4,9 +4,13 @@ using BepuPhysics.Collidables;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using System.IO;
+using Microsoft.Xna.Framework.Media;
+
 using System.Linq;
 using BepuPhysics.CollisionDetection.CollisionTasks;
 using BepuUtilities.Memory;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 using TGC.MonoGame.Samples.Cameras;
 using TGC.MonoGame.Samples.Collisions;
@@ -54,12 +58,25 @@ namespace TGC.MonoGame.TP
         private const float CheckPointHeight = 5000;
         private const float CheckPointRadius = 80;
         private bool alive;
+        private bool inMenu = true;
+        private SoundEffect Music{ get; set; }
+        private SoundEffect jumpSoundEffect { get; set; }
+        private SoundEffect loseSoundEffect { get; set; }
+        private SoundEffect BoostSoundEffect { get; set; }
+        private SoundEffect ChangetSoundEffect { get; set; }
+        private BoundingFrustum BoundingFrustum { get; set; }
+
         private SpriteBatch spriteBatch { get; set; }
 
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
         private Effect Effect { get; set; }
         private Effect BallEffect { get; set; }
+        private Effect RockEffect { get; set; }
+
+        private Effect RubberEffect { get; set; }
+        private Effect MetalEffect { get; set; }
+
         private Model SphereModel { get; set; }
         private Model BodyModel { get; set; }
         private Matrix BodyWorld { get; set; }
@@ -91,6 +108,8 @@ namespace TGC.MonoGame.TP
         private Model StarModel { get; set; }
         
         private Model BirdModel { get; set; }
+        private Model PlayModel { get; set; }
+
         private Matrix BirdWorld { get; set; }
 
         private Matrix StarWorld { get; set; }
@@ -99,7 +118,7 @@ namespace TGC.MonoGame.TP
         private Matrix SlideWorld { get; set; }
         private Model BikeModel { get; set; }
         private Model ArcoModel { get; set; }
-
+        private Effect BlinnEffect { get; set; }
         private Matrix ArcoWorld { get; set; }
         private Boolean god  { get; set; }
         private Matrix BikeWorld { get; set; }
@@ -111,7 +130,8 @@ namespace TGC.MonoGame.TP
 
         private CylinderPrimitive Cylinder { get; set; }
         private Matrix SphereRotation { get; set; }
-        private Matrix SphereWorld { get; set; }
+        private Matrix PlayMatrix { get; set; }
+        private Matrix TextMatrix { get; set; }
 
         private Vector3 SpherePosition { get; set; }
         private Vector3 Checkpoint1Position { get; set; }
@@ -155,16 +175,21 @@ namespace TGC.MonoGame.TP
         public OrientedBoundingBox ArenaCollide { get; set; }
 
 
-        private Effect SphereEffect { get; set; }
+        private Effect MenuEffect { get; set; }
         private Texture2D RockTexture { get; set; }
+        private Texture2D TexturaActual { get; set; }
+        private Texture2D MenuTexture2D { get; set; }
+
         private TextureCube SkyBoxTexture { get; set; }
         private Model SkyBoxModel { get; set; }
+        private Model TextModel { get; set; }
+
         private Effect SkyBoxEffect { get; set; }
         private SkyBox SkyBox { get; set; }
+        private Camera TestCamera { get; set; }
 
         private Texture2D MetalTexture { get; set; }
         private Texture2D RubberTexture { get; set; }
-        private Texture2D BallTexture { get; set; }
 
         /// <summary>
         ///     Se llama una sola vez, al principio cuando se ejecuta el ejemplo.
@@ -216,6 +241,8 @@ namespace TGC.MonoGame.TP
             PathWorld = Matrix.Identity;
             SlideWorld = Matrix.Identity;
             LampWorld = Matrix.Identity;
+            PlayMatrix = Matrix.Identity;
+
             BirdPosition = new Vector3(-1000f, 150f, -1500f);
             Checkpoint1 = 0;
             Checkpoint2 = 0;
@@ -236,8 +263,6 @@ namespace TGC.MonoGame.TP
             SlideCollide = new OrientedBoundingBox(new Vector3(-450, 20, -2000), new Vector3(80, 190 ,100));
             
             SlideCollide.Rotate(Matrix.CreateRotationX(MathHelper.PiOver2));
-            /*Pared7 = new BoundingBox(FinishPosition, new Vector3(200,200,200));
-            Pared8 = new BoundingBox(FinishPosition, new Vector3(200,200,200));*/
             StarCollide = new BoundingSphere(new Vector3(400f, 5f, -100f), 18f);
             SphereCollide = new BoundingSphere(SpherePosition, DIAMETER/2);
             BallCollide1 = new BoundingSphere(new Vector3(400f, 12f, 0f + -200f), (DIAMETER/2)-1);
@@ -245,16 +270,21 @@ namespace TGC.MonoGame.TP
             BallCollide3 = new BoundingSphere(new Vector3(450f, 12f, 0f + -600f), (DIAMETER/2)-1);
             BridgePosition = new Vector3(400f, -230f, -1300f);
             BridgeCollision = new BoundingSphere(BridgePosition, 320f);
-            
+            var size = GraphicsDevice.Viewport.Bounds.Size;
+            size.X /= 2;
+            size.Y /= 2;
+
+
             Test = new SpherePrimitive(GraphicsDevice, 320f*2f, 16, Color.Silver);
 
 
             BikeWorld = Matrix.Identity;
             pastMousePositionY = Mouse.GetState().Position.ToVector2().Y;
-            IsMouseVisible = false;
+            IsMouseVisible = true;
             Mouse.SetPosition(GraphicsDevice.Viewport.Bounds.Height/2,GraphicsDevice.Viewport.Bounds.Width/2);
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
-          
+            BoundingFrustum = new BoundingFrustum(Camera.View * Camera.Projection);
+
             base.Initialize();
         }
 
@@ -287,18 +317,33 @@ namespace TGC.MonoGame.TP
             ArcoModel = Content.Load<Model>(ContentFolder3D + "arco/Soccergoal");
             SphereModel = Content.Load<Model>(ContentFolder3D + "ball/ball");
             SkyBoxModel = Content.Load<Model>(ContentFolder3D + "skybox/cube");
+            PlayModel = Content.Load<Model>(ContentFolder3D + "menu/arcade");
+            TextModel = Content.Load<Model>(ContentFolder3D + "play/text3d");
+            SkyBoxTexture = Content.Load<TextureCube>(ContentFolderTextures + "skybox");
 
-            font = Content.Load<SpriteFont>("Font/File");
+            MenuTexture2D = Content.Load<Texture2D>(ContentFolder3D + "menu/tex");
+                
+
             // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
+            BlinnEffect = Content.Load<Effect>(ContentFolderEffects + "BlinnPhong");
+
             BallEffect = Content.Load<Effect>(ContentFolderEffects + "BallShader");
+            MetalEffect = Content.Load<Effect>(ContentFolderEffects + "RubberEffect");
+            RockEffect = Content.Load<Effect>(ContentFolderEffects + "MetalEffect");
+            RubberEffect = Content.Load<Effect>(ContentFolderEffects + "RockEffect");
+            MenuEffect = Content.Load<Effect>(ContentFolderEffects + "MenuShader");
+
             SkyBoxEffect = Content.Load<Effect>(ContentFolderEffects + "SkyBox");
 
+            FuncionesGenerales.loadEffectOnMesh(TextModel,Effect);
+
+            FuncionesGenerales.loadEffectOnMesh(PlayModel, MenuEffect);
             FuncionesGenerales.loadEffectOnMesh(GrassModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BodyModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(LampModel, Effect);
-            FuncionesGenerales.loadEffectOnMesh(MonumentModel, Effect);
+            FuncionesGenerales.loadEffectOnMesh(MonumentModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(BoyModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(TreeModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(Tree1Model, Effect);
@@ -314,15 +359,22 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(BirdModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(ArcoModel, Effect);
             FuncionesGenerales.loadEffectOnMesh(BallModel, Effect);
-            FuncionesGenerales.loadEffectOnMesh(SphereModel, BallEffect);
             //BridgeModel.Meshes.Get.GetVerticesAndIndicesFromModel.
-            //ConvexHullHelper.CreateShape(BridgeModel.Bones., ,,);
-            SkyBoxTexture = Content.Load<TextureCube>(ContentFolderTextures + "skybox");
 
-            RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
-            MetalTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-metal");
-            RubberTexture = Content.Load<Texture2D>(ContentFolderTextures + "esfera-goma");
-            SkyBox = new SkyBox(SkyBoxModel,SkyBoxTexture,SkyBoxEffect);
+            //ConvexHullHelper.CreateShape(BridgeModel.Bones., ,,);
+            
+            //TexturaActual = RockTexture;
+            
+            Music = Content.Load<SoundEffect>(ContentFolderMusic + "ost");
+            jumpSoundEffect = Content.Load<SoundEffect>(ContentFolderMusic + "jump");
+            loseSoundEffect = Content.Load<SoundEffect>(ContentFolderMusic + "fail");
+            BoostSoundEffect = Content.Load<SoundEffect>(ContentFolderMusic + "powerup");
+            SoundEffect.Initialize();
+
+            Music.Play();
+           // Music.Duration.Add(TimeSpan.MaxValue);
+           SkyBox = new SkyBox(SkyBoxModel,SkyBoxTexture,SkyBoxEffect);
+
             base.LoadContent();
         }
         private float Angle { get; set; }
@@ -331,25 +383,40 @@ namespace TGC.MonoGame.TP
         private float Distance { get; set; }
         private Matrix View { get; set; }
         private Vector3 ViewVector { get; set; }
+
         private void UpdateCamera() //Sacado de Samples.ThirdPersonPlatformer
         {
             // Create a position that orbits the Robot by its direction (Rotation)
 
             // Create a normalized vector that points to the back of the Robot
-            var sphereBackDirection = Vector3.Transform(Vector3.Backward, SphereRotation);
-            // Then scale the vector by a radius, to set an horizontal distance between the Camera and the Robot
-            var orbitalPosition = sphereBackDirection * CameraFollowRadius;
+            
+
+                var sphereBackDirection = Vector3.Transform(Vector3.Backward, SphereRotation);
+                // Then scale the vector by a radius, to set an horizontal distance between the Camera and the Robot
+                var orbitalPosition = sphereBackDirection * CameraFollowRadius;
 
 
-            // We will move the Camera in the Y axis by a given distance, relative to the Robot
-            var upDistance = Vector3.Up * CameraUpDistance;
+                // We will move the Camera in the Y axis by a given distance, relative to the Robot
+                var upDistance = Vector3.Up * CameraUpDistance;
 
-            // Calculate the new Camera Position by using the Robot Position, then adding the vector orbitalPosition that sends 
-            // the camera further in the back of the Robot, and then we move it up by a given distance
-            Camera.Position = SpherePosition + orbitalPosition + upDistance;
+                // Calculate the new Camera Position by using the Robot Position, then adding the vector orbitalPosition that sends 
+                // the camera further in the back of the Robot, and then we move it up by a given distance
+                if (inMenu)
+                {
+                    Camera.Position = new Vector3(2000f, 650f, 1100f);
+                    Camera.TargetPosition = new Vector3(2000f, 400f, 1500f);
 
-            // Set the Target as the Robot, the Camera needs to be always pointing to it
-            Camera.TargetPosition = SpherePosition;
+                }
+                else
+                {
+                    Camera.Position = SpherePosition + orbitalPosition + upDistance;
+                    Camera.TargetPosition = SpherePosition;
+
+
+                }
+
+                // Set the Target as the Robot, the Camera needs to be always pointing to it
+           
 
             // Build the View matrix from the Position and TargetPosition
             Camera.BuildView();
@@ -369,145 +436,197 @@ namespace TGC.MonoGame.TP
         private const float FRICTION = 0.99995f;
         private float JumpSpeed = 100f;
         private bool drawStar = true;
+        private bool Dir = false ;
+        private float BirdDir = -1f;
         protected override void Update(GameTime gameTime)
         {
-            // Aca deberiamos poner toda la logica de actualizacion del juego.
-            chequearPropiedadesTextura(BallEffect.Parameters["ModelTexture"]?.GetValueTexture2D());
-
+            
             elapsedTime = Convert.ToSingle(gameTime.ElapsedGameTime.TotalSeconds);
-            // Capturar Input teclado
-            if (Keyboard.GetState().IsKeyDown(Keys.Escape))
-            {
-                //Salgo del juego.
-                Exit();
-            }
 
-            if (Keyboard.GetState().IsKeyDown(Keys.G))
+            
+            UpdateCamera();
+            if (inMenu==false)
             {
-                god = !god;
-            }
 
-            isOnGround = MathF.Abs(SpherePosition.Y) <= 10f /*float.Epsilon*/;
-            if (BridgeCollision.Intersects(SphereCollide) || SlideCollide.Intersects(SphereCollide) )
-            {
-                isOnGround = true;
-            }
+                moverCamaraMouse();
+               // TestCamera.Update(gameTime);
 
+                BoundingFrustum.Matrix = Camera.View * Camera.Projection;
 
-            if (isOnGround)
-            {
-                if (Keyboard.GetState().IsKeyDown(Keys.A))
+                // Aca deberiamos poner toda la logica de actualizacion del juego.
+                chequearPropiedadesTextura(BallEffect.Parameters["ModelTexture"]?.GetValueTexture2D());
+                if (TexturaActual == null)
                 {
-                    /*Acceleration = Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
-                    Roll += elapsedTime * currentSpeed / 2;*/
-                    SpherePosition -= Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
-                    Roll += elapsedTime * currentSpeed / 2;
+                    TexturaActual = Content.Load<Texture2D>(ContentFolderTextures + "esfera-goma");
+
+                }
+                if (Keyboard.GetState().IsKeyDown(Keys.G))
+                {
+                    TexturaActual = Content.Load<Texture2D>(ContentFolderTextures + "esfera-goma");
+                      
                 }
 
-                if (Keyboard.GetState().IsKeyDown(Keys.D))
+                if (Keyboard.GetState().IsKeyDown(Keys.R))
                 {
-                    /*Acceleration = -Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
-                    Roll -= elapsedTime * currentSpeed / 2;*/
-                    SpherePosition += Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
-                    Roll -= elapsedTime * currentSpeed / 2;
+                  
+                    TexturaActual =  Content.Load<Texture2D>(ContentFolderTextures + "esfera-piedra");
                 }
 
-                if (Keyboard.GetState().IsKeyDown(Keys.W))
+                if (Keyboard.GetState().IsKeyDown(Keys.M))
                 {
-                    Acceleration = SphereFrontDirection * HORIZONTAL_ACC;
-                    Pitch += elapsedTime * currentSpeed / 2;
+                    TexturaActual =  Content.Load<Texture2D>(ContentFolderTextures + "esfera-metal");
+
                 }
-                else if (Keyboard.GetState().IsKeyDown(Keys.S))
+
+                // Capturar Input teclado
+               
+
+
+                isOnGround = MathF.Abs(SpherePosition.Y) <= 10f /*float.Epsilon*/;
+                if (BridgeCollision.Intersects(SphereCollide) || SlideCollide.Intersects(SphereCollide))
                 {
-                    Acceleration = -SphereFrontDirection * HORIZONTAL_ACC;
-                    Pitch -= elapsedTime * currentSpeed / 2;
+                    isOnGround = true;
+                }
+
+
+                if (isOnGround)
+                {
+                    if (Keyboard.GetState().IsKeyDown(Keys.A))
+                    {
+                        /*Acceleration = Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
+                        Roll += elapsedTime * currentSpeed / 2;*/
+                        SpherePosition -= Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
+                        Roll += elapsedTime * currentSpeed / 2;
+                    }
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.D))
+                    {
+                        /*Acceleration = -Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
+                        Roll -= elapsedTime * currentSpeed / 2;*/
+                        SpherePosition += Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
+                        Roll -= elapsedTime * currentSpeed / 2;
+                    }
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.W))
+                    {
+                        Acceleration = SphereFrontDirection * HORIZONTAL_ACC;
+                        Pitch += elapsedTime * currentSpeed / 2;
+                    }
+                    else if (Keyboard.GetState().IsKeyDown(Keys.S))
+                    {
+                        Acceleration = -SphereFrontDirection * HORIZONTAL_ACC;
+                        Pitch -= elapsedTime * currentSpeed / 2;
+                    }
+                    else
+                    {
+                        var HorizontalVelocity = -Velocity;
+                        HorizontalVelocity.Y = 0f;
+                        Acceleration = -Velocity * FRICTION;
+                    }
+
+
+
                 }
                 else
                 {
-                    var HorizontalVelocity = -Velocity;
-                    HorizontalVelocity.Y = 0f;
-                    Acceleration = -Velocity * FRICTION;
+                    Acceleration = Vector3.Zero;
+                }
+
+                if (!BridgeCollision.Intersects(SphereCollide) || !SlideCollide.Intersects(SphereCollide))
+                {
+                    Acceleration.Y = GRAVITY;
+                }
+
+                if (Keyboard.GetState().IsKeyDown(Keys.Space) && isOnGround)
+                {
+                    Velocity.Y += JumpSpeed;
+                    jumpSoundEffect.Play();
+                }
+
+                if (StarCollide.Intersects(SphereCollide))
+                {
+                    Velocity = new Vector3(Velocity.X * 1.2f, Velocity.Y, Velocity.Z * 1.2f);
+                    drawStar = false;
+                    BoostSoundEffect.Play();
+                }
+
+                Velocity += Acceleration * elapsedTime;
+
+                SpherePosition += Velocity * elapsedTime;
+
+
+                if (SpherePosition.Y <= 10f)
+                {
+                    Velocity.Y = 0f;
+                    //no se por qué tira error de que no se puede asignar directamente a SpherePosition.Y
+                    //de momento lo soluciono con esto
+                    Vector3 Position = SpherePosition;
+                    Position.Y = 10f;
+                    SpherePosition = Position;
                 }
 
 
 
-            }
-            else
-            {
-                Acceleration = Vector3.Zero;
-            }
 
-            if (!BridgeCollision.Intersects(SphereCollide) || !SlideCollide.Intersects(SphereCollide)){
-                Acceleration.Y = GRAVITY;
-            }
+                if (!IsBetween(BirdPosition.Z, -1450f, -2100f))
+                {
+                    Dir = !Dir;
+                }
 
-            if(Keyboard.GetState().IsKeyDown(Keys.Space) && isOnGround){
-                Velocity.Y += JumpSpeed;
-            }
+                if (Dir)
+                {
+                    BirdDir *= -1f;
+                }
 
-            if (StarCollide.Intersects(SphereCollide))
-            {
-                Velocity = new Vector3 (Velocity.X * 1.2f, Velocity.Y, Velocity.Z * 1.2f);
-                drawStar = false;
-            }
+                BirdPosition = new Vector3(BirdPosition.X, BirdPosition.Y, BirdPosition.Z + 10f * BirdDir);
 
-            Velocity += Acceleration * elapsedTime;
-
-            SpherePosition += Velocity * elapsedTime;
-
-           
-            if(SpherePosition.Y <= 10f){
-                Velocity.Y = 0f;
-                //no se por qué tira error de que no se puede asignar directamente a SpherePosition.Y
-                //de momento lo soluciono con esto
-                Vector3 Position = SpherePosition;
-                Position.Y = 10f;
-                SpherePosition = Position;
-            }
-
-            if(BirdPosition.Z <= (-1*1450f))
-            {
-                BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z+10f);
                 BirdWorld = Matrix.CreateTranslation(BirdPosition);
-            }
-            if(BirdPosition.Z >= (-1f*1190f))
-            {
-                BirdPosition = new Vector3(BirdPosition.X,BirdPosition.Y,BirdPosition.Z-10f);
-                BirdWorld = Matrix.CreateTranslation(BirdPosition);
-            }
 
+                if (BridgeCollision.Intersects(SphereCollide))
+                {
+                    SpherePosition = SpherePosition + new Vector3(0, 1f, 0);
+                }
 
-            if (BridgeCollision.Intersects(SphereCollide) )
+                if (SlideCollide.Intersects(SphereCollide))
+                {
+                    Velocity = Velocity + new Vector3(0, 30f, 0);
+                    SpherePosition = SpherePosition + new Vector3(0, 20f, 0);
+
+                }
+
+                if (BridgeCollision.Contains(SphereCollide) == ContainmentType.Contains)
+                {
+                    Velocity *= 0.1f;
+                    SpherePosition = SpherePosition + new Vector3(0, DIAMETER / 2, 0);
+                }
+
+                SphereCollide = new BoundingSphere(SpherePosition, DIAMETER / 2);
+
+                //Dejar siempre al final del update porque necesita la posicion ya calculada
+                SpherePosition = collisionObstacle(SphereCollide);
+
+                collisionCheckpoint(SphereCollide);
+                alive = isOnTrack();
+                if (!alive)
+                {
+                    SpherePosition = Loss();
+                }
+
+            }else
             {
-                SpherePosition = SpherePosition + new Vector3(0,1f,0);
+
+                
+                if (Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>850f && Mouse.GetState().Position.X<1200f ) && (Mouse.GetState().Position.Y>300f && Mouse.GetState().Position.Y<600f ))
+                {
+                    inMenu = false;
+                }
             }
-
-            if (SlideCollide.Intersects(SphereCollide))
+            if (Keyboard.GetState().IsKeyDown(Keys.Escape))
             {
-                Velocity= Velocity + new Vector3(0,30f,0);
-                SpherePosition = SpherePosition + new Vector3(0,20f,0);
 
+                //Salgo del juego.
+                Exit();
             }
-            if (BridgeCollision.Contains(SphereCollide) == ContainmentType.Contains)
-            {
-                Velocity *= 0.1f;
-                SpherePosition = SpherePosition + new Vector3(0,DIAMETER/2,0);
-            }
-            SphereCollide= new BoundingSphere(SpherePosition,DIAMETER/2);
-            
-            //Dejar siempre al final del update porque necesita la posicion ya calculada
-            SpherePosition=collisionObstacle(SphereCollide);
-            
-            collisionCheckpoint(SphereCollide);
-            /*alive = isOnTrack();
-            if (!alive)
-            {
-               SpherePosition= Loss();
-            }*/
-            
-            moverCamaraMouse();
-            UpdateCamera();
-
             base.Update(gameTime);
         }
 
@@ -524,7 +643,11 @@ namespace TGC.MonoGame.TP
         ///     Se llama cada vez que hay que refrescar la pantalla.
         ///     Escribir aqui el codigo referido al renderizado.
         /// </summary>
- 
+        public static bool IsBetween<T>( T item, T start, T end)
+        {
+            return Comparer<T>.Default.Compare(item, start) >= 0
+                   && Comparer<T>.Default.Compare(item, end) <= 0;
+        }
         
         protected override void Draw(GameTime gameTime)
         {
@@ -535,31 +658,81 @@ namespace TGC.MonoGame.TP
             View = Matrix.CreateLookAt(Camera.Position, Camera.TargetPosition, Vector3.UnitY);
 
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            var originalRasterizerState = GraphicsDevice.RasterizerState;
-            var rasterizerState = new RasterizerState();
-            rasterizerState.CullMode = CullMode.None;
-            Graphics.GraphicsDevice.RasterizerState = rasterizerState;
-            SkyBox.Draw(View, Camera.Projection, Camera.Position);
+            
+          
 
-            GraphicsDevice.RasterizerState = originalRasterizerState;
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
-            generateLevel();
+            
+            BlinnEffect.Parameters["ambientColor"].SetValue(Color.Gray.ToVector3());
+            BlinnEffect.Parameters["diffuseColor"].SetValue(Color.Gray.ToVector3());
+            BlinnEffect.Parameters["specularColor"].SetValue(Color.White.ToVector3());
+            BlinnEffect.Parameters["diffuseColor"].SetValue(Color.Gray.ToVector3());
+            BlinnEffect.Parameters["KAmbient"].SetValue(0.5f);
+            BlinnEffect.Parameters["KDiffuse"].SetValue(0.5f);
+            BlinnEffect.Parameters["KSpecular"].SetValue(0.8f);
+            BlinnEffect.Parameters["shininess"].SetValue(0.6f);
+            BlinnEffect.Parameters["lightPosition"].SetValue(new Vector3(100f,50f,-100f));
+            BlinnEffect.Parameters["eyePosition"].SetValue(Camera.Position);
+            BlinnEffect.Parameters["baseTexture"].SetValue(MetalTexture);
 
             Effect.Parameters["View"].SetValue(Camera.View);
             Effect.Parameters["Projection"].SetValue(Camera.Projection);
             BallEffect.Parameters["View"].SetValue(Camera.View);
             BallEffect.Parameters["Projection"].SetValue(Camera.Projection);
-            if (Checkpoint1==0)
+            MenuEffect.Parameters["View"].SetValue(Camera.View);
+            MenuEffect.Parameters["Projection"].SetValue(Camera.Projection);
+            if (!inMenu)
             {
-                DrawCylinder(Cylinder, Checkpoint1Position);
-            }
+                var originalRasterizerState = GraphicsDevice.RasterizerState;
+                var rasterizerState = new RasterizerState();
+                rasterizerState.CullMode = CullMode.None;
+                Graphics.GraphicsDevice.RasterizerState = rasterizerState;
 
-            if (Checkpoint2==0)
-            {
-                DrawCylinder(Cylinder, Checkpoint2Position);
+                SkyBox.Draw(Camera.View, Camera.Projection, Camera.Position);
+                GraphicsDevice.RasterizerState = originalRasterizerState;
+
+                generateLevel();
+
             }
-          //  DrawGeometry(Test,BridgePosition,0,0,0);
-            DrawSphere(SpherePosition, 0f, Pitch, Roll);
+            else
+            {
+                
+                MenuEffect.Parameters["ModelTexture"]?.SetValue(MenuTexture2D);
+                
+                foreach (var mesh in PlayModel.Meshes)
+                {
+                    PlayMatrix = mesh.ParentBone.Transform;
+                    MenuEffect.Parameters["World"].SetValue(PlayMatrix * Matrix.CreateRotationY(MathHelper.Pi) *
+                                                            Matrix.CreateScale(3f) *
+                                                            Matrix.CreateTranslation(new Vector3(2000f, 150f, 1500f)));
+                    mesh.Draw();
+                }
+                foreach (var mesh in TextModel.Meshes)
+                {
+                    TextMatrix = mesh.ParentBone.Transform;
+                    Effect.Parameters["World"].SetValue(TextMatrix * Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * 
+                                                            Matrix.CreateScale(0.2f) *
+                                                            Matrix.CreateTranslation(new Vector3(1975f, 450f, 1500f)));
+                    mesh.Draw();
+                }
+            }
+                if (Checkpoint1==0)
+                {
+                    DrawCylinder(Cylinder, Checkpoint1Position);
+                }
+
+                if (Checkpoint2==0)
+                {
+                    DrawCylinder(Cylinder, Checkpoint2Position);
+                }
+
+                if (BoundingFrustum.Intersects(SphereCollide))
+                {
+                    DrawSphere(SpherePosition, 0f, Pitch, Roll);
+                }
+
+
+                //  DrawGeometry(Test,BridgePosition,0,0,0);
             //DrawGeometry(Sphere, SpherePosition, 0f, Pitch, Roll);
    
           
@@ -567,10 +740,6 @@ namespace TGC.MonoGame.TP
            
           //  FuncionesGenerales.drawMesh(SphereModel,SphereWorld*Matrix.CreateTranslation(SpherePosition),BallEffect);
     
-          /*spriteBatch.Begin();
- 
-          spriteBatch.DrawString(font, SpherePosition.ToString(), new Vector2(100,20), Color.Black);
-          spriteBatch.End();*/
           
 
 
@@ -603,7 +772,9 @@ namespace TGC.MonoGame.TP
         }
         private void DrawSphere(Vector3 position, float yaw, float pitch, float roll)
         {
-            BallEffect.Parameters["ModelTexture"]?.SetValue(RubberTexture);
+            FuncionesGenerales.loadEffectOnMesh(SphereModel, BallEffect);
+            BallEffect.Parameters["ModelTexture"]?.SetValue(TexturaActual);
+
             foreach (var mesh in SphereModel.Meshes)
             {
                 BallWorld = mesh.ParentBone.Transform;
@@ -642,7 +813,13 @@ namespace TGC.MonoGame.TP
 
             if (Checkpoint1==1 && Checkpoint2==1 && FinishCollide.Intersects(esfera))
             {
-                SpherePosition = new Vector3(2, 2, 2);
+                inMenu = true;
+                alive = true;
+                Checkpoint1 = 0;
+                Checkpoint2 = 0;
+                drawStar = true;
+                Velocity = new Vector3(0f, 0f, 0f);
+                SpherePosition = new Vector3(350f, 15, 200);
             }
         }
 
@@ -651,18 +828,27 @@ namespace TGC.MonoGame.TP
             
                 if (Checkpoint1 == 1)
                 {
+                    Velocity = new Vector3(0f, 0f, 0f);
                     return Checkpoint1Position;
                 }
 
                 if (Checkpoint1 == 1 && Checkpoint2 == 1)
                 {
+                    Velocity = new Vector3(0f, 0f, 0f);
                     return Checkpoint2Position;
                 }
 
                 if (Checkpoint1 == 0 && Checkpoint1 == 0)
                 {
-                    Exit();
-                    return SpherePosition;
+                    loseSoundEffect.Play();
+                    inMenu = true;
+                    alive = true;
+                    Checkpoint1 = 0;
+                    Checkpoint2 = 0;
+                    drawStar = true;
+                    Velocity = new Vector3(0f, 0f, 0f);
+                    return new Vector3(350f, 15, 200);
+                    
                 }
             
 
@@ -690,7 +876,8 @@ namespace TGC.MonoGame.TP
             Debug.Write(Alto);
             var a100 = (1920f / 800f) * 100f;
             Debug.Write(Ancho);
-           // var Alto100=*/
+           // var Alto100=*/ 
+
         Effect.Parameters["DiffuseColor"].SetValue(Color.DarkGreen.ToVector3());
 
         for (float i = 0; i < 40; i++)
@@ -766,10 +953,16 @@ namespace TGC.MonoGame.TP
         Effect.Parameters["DiffuseColor"].SetValue(Color.Silver.ToVector3());
         foreach (var mesh in MonumentModel.Meshes)
         {
+
             MonumentWorld = mesh.ParentBone.Transform;
-            Effect.Parameters["World"]
-                .SetValue(MonumentWorld * Matrix.CreateScale(8f) * Matrix.CreateTranslation(400f, 6f, -2500f));
+            var w= MonumentWorld * Matrix.CreateScale(8f) * Matrix.CreateTranslation(400f, 6f, -2500f);
+            BlinnEffect.Parameters["World"]
+                .SetValue(w);
+            BlinnEffect.Parameters["WorldViewProjection"].SetValue(w*Camera.View*Camera.Projection);
+
+            BlinnEffect.Parameters["InverseTransposeWorld"].SetValue(Matrix.Invert(Matrix.Transpose(w)));
             mesh.Draw();
+
         }
 
 
@@ -783,7 +976,9 @@ namespace TGC.MonoGame.TP
         }
 
         Effect.Parameters["DiffuseColor"].SetValue(Color.White.ToVector3());
-    
+        if (BoundingFrustum.Intersects(BallCollide1))
+        {
+
             foreach (var mesh in BallModel.Meshes)
             {
                 BallWorld = mesh.ParentBone.Transform;
@@ -792,16 +987,22 @@ namespace TGC.MonoGame.TP
                                                     Matrix.CreateTranslation(400f, 12f, 0f + -200f));
                 mesh.Draw();
             }
+        }
 
-   
+        if (BoundingFrustum.Intersects(BallCollide2))
+        {
+
             foreach (var mesh in BallModel.Meshes)
             {
                 BallWorld = mesh.ParentBone.Transform;
                 Effect.Parameters["World"].SetValue(BallWorld * Matrix.CreateRotationY(MathHelper.PiOver2) *
                                                     Matrix.CreateScale(1f) *
-                                                    Matrix.CreateTranslation(350f, 12f, 0f +  -400f));
+                                                    Matrix.CreateTranslation(350f, 12f, 0f + -400f));
                 mesh.Draw();
             }
+        }
+        if (BoundingFrustum.Intersects(BallCollide3)){
+
             foreach (var mesh in BallModel.Meshes)
             {
                 BallWorld = mesh.ParentBone.Transform;
@@ -810,6 +1011,7 @@ namespace TGC.MonoGame.TP
                                                     Matrix.CreateTranslation(450f, 12f, 0f +  -600f));
                 mesh.Draw();
             }
+        }
             foreach (var mesh in BirdModel.Meshes)
             {
                 BirdWorld = mesh.ParentBone.Transform;
@@ -932,16 +1134,20 @@ namespace TGC.MonoGame.TP
             mesh.Draw();
         }
 
-        foreach (var mesh in BridgeModel.Meshes)
+        if (BoundingFrustum.Intersects(BridgeCollision))
         {
 
-            BridgeWorld = mesh.ParentBone.Transform;
-            Effect.Parameters["World"].SetValue(BridgeWorld * Matrix.CreateScale(100f) *
-                                                Matrix.CreateRotationX(-1f * MathHelper.PiOver2) *
-                                                Matrix.CreateRotationY(MathHelper.PiOver2) *
-                                                Matrix.CreateTranslation(400f, 0f, -1300f));
-    
-            mesh.Draw();
+            foreach (var mesh in BridgeModel.Meshes)
+            {
+
+                BridgeWorld = mesh.ParentBone.Transform;
+                Effect.Parameters["World"].SetValue(BridgeWorld * Matrix.CreateScale(100f) *
+                                                    Matrix.CreateRotationX(-1f * MathHelper.PiOver2) *
+                                                    Matrix.CreateRotationY(MathHelper.PiOver2) *
+                                                    Matrix.CreateTranslation(400f, 0f, -1300f));
+
+                mesh.Draw();
+            }
         }
 
         for (float i = 0; i < 3; i++)

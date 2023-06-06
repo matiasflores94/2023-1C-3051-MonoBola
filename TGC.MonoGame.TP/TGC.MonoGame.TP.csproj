@@ -32,6 +32,7 @@
     <Folder Include="Content\Models\tree" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Content\Effects\BlinnPhong.fx" />
     <ClCompile Include="Content\Effects\SkyBox.fx" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
