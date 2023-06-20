@@ -33,7 +33,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Content\Effects\BlinnPhong.fx" />
+    <ClCompile Include="Content\Effects\PBR.fx" />
     <ClCompile Include="Content\Effects\SkyBox.fx" />
+    <ClCompile Include="Content\Effects\PostProcess.fx" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
     <Message Text="Restoring dotnet tools" Importance="High" />

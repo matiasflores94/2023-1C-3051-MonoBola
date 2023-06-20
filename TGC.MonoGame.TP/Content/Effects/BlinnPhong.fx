@@ -82,11 +82,56 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 
 }
 
+
+VertexShaderOutput MainPlainVS(in VertexShaderInput input)
+{
+	VertexShaderOutput output = (VertexShaderOutput)0;
+
+    output.Position = mul(input.Position, WorldViewProjection);
+    output.WorldPosition = mul(input.Position, World);
+    output.Normal = mul(input.Normal, InverseTransposeWorld);
+   // output.TextureCoordinates = input.TextureCoordinates;
+	
+	return output;
+}
+
+float4 MainPlainPS(VertexShaderOutput input) : COLOR
+{
+    // Base vectors
+    float3 lightDirection = normalize(lightPosition - input.WorldPosition.xyz);
+    float3 viewDirection = normalize(eyePosition - input.WorldPosition.xyz);
+    float3 halfVector = normalize(lightDirection + viewDirection);
+
+	// Get the texture texel
+   // float4 texelColor = tex2D(textureSampler, input.TextureCoordinates);
+    
+	// Calculate the diffuse light
+    float NdotL = saturate(dot(input.Normal.xyz, lightDirection));
+    float3 diffuseLight = KDiffuse * diffuseColor * NdotL;
+
+	// Calculate the specular light
+    float NdotH = dot(input.Normal.xyz, halfVector);
+    float3 specularLight = sign(NdotL) * KSpecular * specularColor * pow(saturate(NdotH), shininess);
+    
+    // Final calculation
+    float4 finalColor = float4(saturate(ambientColor * KAmbient + diffuseLight) + specularLight,1.0);
+    return finalColor;
+
+}
+
 technique BasicColorDrawing
 {
 	pass Pass0
 	{
 		VertexShader = compile VS_SHADERMODEL MainVS();
 		PixelShader = compile PS_SHADERMODEL MainPS();
+	}
+};
+technique BasicPlainDrawing
+{
+	pass Pass0
+	{
+		VertexShader = compile VS_SHADERMODEL MainPlainVS();
+		PixelShader = compile PS_SHADERMODEL MainPlainPS();
 	}
 };
