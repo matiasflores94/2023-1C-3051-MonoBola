@@ -10,6 +10,10 @@
 float4x4 matWorld; //Matriz de transformacion World
 float4x4 matWorldViewProj; //Matriz World * View * Projection
 float3x3 matInverseTransposeWorld; //Matriz Transpose(Invert(World))
+float4x4 LightViewProjection;
+
+static const float modulatedEpsilon = 0.000041200182749889791011810302734375;
+static const float maxEpsilon = 0.000023200045689009130001068115234375;
 
 //Textura para Albedo
 texture albedoTexture;
@@ -78,13 +82,21 @@ struct Light
 	float3 Color;
 } ;
 
-#define LIGHT_COUNT 15
+#define LIGHT_COUNT 16
 
-float3 lightPositions[15];
-float3 lightColors[15];
+float3 lightPositions[16];
+float3 lightColors[16];
 
 float3 eyePosition; //Posicion de la camara
-
+texture environmentMap;
+samplerCUBE environmentMapSampler = sampler_state
+{
+    Texture = (environmentMap);
+    MagFilter = Linear;
+    MinFilter = Linear;
+    AddressU = Clamp;
+    AddressV = Clamp;
+};
 static const float PI = 3.14159265359;
 
 //Input del Vertex Shader
@@ -102,6 +114,33 @@ struct VertexShaderOutput
 	float2 TextureCoordinates : TEXCOORD0;
 	float3 WorldNormal : TEXCOORD1;
 	float4 WorldPosition : TEXCOORD2;
+	float4 LightSpacePosition : TEXCOORD3;
+
+};
+texture shadowMap;
+sampler2D shadowMapSampler =
+sampler_state
+{
+	Texture = <shadowMap>;
+	MinFilter = Point;
+	MagFilter = Point;
+	MipFilter = Point;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+float3 lightPosition;
+
+float2 shadowMapSize;
+struct DepthPassVertexShaderInput
+{
+	float4 Position : POSITION0;
+};
+
+struct DepthPassVertexShaderOutput
+{
+	float4 Position : SV_POSITION;
+	float4 ScreenSpacePosition : TEXCOORD1;
 };
 
 //Vertex Shader
@@ -120,6 +159,8 @@ VertexShaderOutput MainVS(VertexShaderInput input)
 
 	// Usamos la matriz de world para proyectar la posicion
 	output.WorldPosition = mul(input.Position, matWorld);
+	output.LightSpacePosition = mul(output.Position, LightViewProjection);
+
 
 	return output;
 }
@@ -180,10 +221,32 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 {
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
-
+float cantidadEnviroment;
 //Pixel Shader
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
+		//CALCULO SHADOWS
+		float3 lightSpacePosition = input.LightSpacePosition.xyz / input.LightSpacePosition.w;
+    	float2 shadowMapTextureCoordinates = 0.5 * lightSpacePosition.xy + float2(0.5, 0.5);
+    	shadowMapTextureCoordinates.y = 1.0f - shadowMapTextureCoordinates.y;
+	
+    	float3 normals = normalize(input.WorldNormal.rgb);
+    	float3 lightDirection = normalize(lightPosition - input.WorldPosition.xyz);
+    	float inclinationBias = max(modulatedEpsilon * (1.0 - dot(normals, lightDirection)), maxEpsilon);
+	
+		// Sample and smooth the shadowmap
+		// Also perform the comparison inside the loop and average the result
+    	float notInShadow = 0.0;
+    	float2 texelSize = 1.0 / shadowMapSize;
+    	for (int x = -1; x <= 1; x++)
+        for (int y = -1; y <= 1; y++)
+        {
+            float pcfDepth = tex2D(shadowMapSampler, shadowMapTextureCoordinates + float2(x, y) * texelSize).r + inclinationBias;
+            notInShadow += step(lightSpacePosition.z, pcfDepth) / 9.0;
+        }
+	
+   
+		//CALCULO SHADOWS
 	float3 albedo = pow(tex2D(albedoSampler, input.TextureCoordinates).rgb, float3(2.2, 2.2, 2.2));
 	float metallic = tex2D(metallicSampler, input.TextureCoordinates).r;
 	float roughness = tex2D(roughnessSampler, input.TextureCoordinates).r;
@@ -203,6 +266,8 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	
 	for (int index = 0; index < LIGHT_COUNT; index++)
 	{
+	
+
 		float3 light = lightPositions[index] - input.WorldPosition.xyz;
 		float distance = length(light);
 		// Normalize our light vector after using its length
@@ -210,7 +275,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 		float3 halfVector = normalize(view + light);		
 		float attenuation = 1.0 / (distance);
 		float3 radiance = lightColors[index] * attenuation;
-
+		
 
 		// Cook-Torrance BRDF
 		float NDF = DistributionGGX(normal, halfVector, roughness);
@@ -244,9 +309,37 @@ float4 MainPS(VertexShaderOutput input) : COLOR
 	float exponent = 1.0 / 2.2;
 	// Gamma correct
 	color = pow(color, float3(exponent, exponent, exponent));
-
-    return float4(color, 1.0);
+    float3 reflection = reflect(view, normal);
+    float3 reflectionColor = texCUBE(environmentMapSampler, reflection).rgb;
+    float fresnel = saturate((1.0 - dot(normal, view))); 
+    float4 pbrenviroment =  float4(lerp(color, reflectionColor, fresnel*cantidadEnviroment), 1);
+    pbrenviroment.rgb *= 0.5 + 0.5 * notInShadow;
+    return pbrenviroment;
 }
+
+DepthPassVertexShaderOutput DepthVS(in DepthPassVertexShaderInput input)
+{
+	DepthPassVertexShaderOutput output;
+	output.Position = mul(input.Position, matWorldViewProj);
+	output.ScreenSpacePosition = mul(input.Position, matWorldViewProj);
+	return output;
+}
+
+float4 DepthPS(in DepthPassVertexShaderOutput input) : COLOR
+{
+    float depth = input.ScreenSpacePosition.z / input.ScreenSpacePosition.w;
+    return float4(depth, depth, depth, 1.0);
+}
+
+
+technique DepthPass
+{
+	pass Pass0
+	{
+		VertexShader = compile VS_SHADERMODEL DepthVS();
+		PixelShader = compile PS_SHADERMODEL DepthPS();
+	}
+};
 
 technique PBR
 {

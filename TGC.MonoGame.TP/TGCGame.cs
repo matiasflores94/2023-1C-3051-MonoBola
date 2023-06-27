@@ -51,6 +51,7 @@ namespace TGC.MonoGame.TP
             // Hace que el mouse sea visible.
             IsMouseVisible = true;
         }
+        private const int ShadowmapSize = 2048;
 
         private const float SPEED = 50f;
         private const float DIAMETER = 10f;
@@ -62,9 +63,13 @@ namespace TGC.MonoGame.TP
         private const float CheckPointRadius = 80;
         private bool alive;
         private bool inMenu = true;
+        private StaticCamera CubeMapCamera { get; set; }
+        public Effect ShadowMap { get; set; }
+
         private SoundEffect Music{ get; set; }
         private SoundEffect jumpSoundEffect { get; set; }
         public float tiempoStar = 0f;
+        public RenderTargetCube EnvironmentMapRenderTarget { get; set; }
 
         private SoundEffect loseSoundEffect { get; set; }
         private SoundEffect BoostSoundEffect { get; set; }
@@ -206,7 +211,7 @@ namespace TGC.MonoGame.TP
         private Texture2D GomaMetal { get; set; }
 
         
-
+       // private Vector3 light  = 
         private TextureCube SkyBoxTexture { get; set; }
         private Model SkyBoxModel { get; set; }
         private Model TextModel { get; set; }
@@ -215,7 +220,7 @@ namespace TGC.MonoGame.TP
         private Effect PBR { get; set; }
 
         private SkyBox SkyBox { get; set; }
-        private Camera TestCamera { get; set; }
+        public TargetCamera TargetLightCamera { get; set; }
 
         private Texture2D MetalTexture { get; set; }
         private Texture2D RubberTexture { get; set; }
@@ -225,6 +230,8 @@ namespace TGC.MonoGame.TP
         ///     Escribir aqui el codigo de inicializacion: el procesamiento que podemos pre calcular para nuestro juego.
         /// </summary>
         private Vector3 BridgePosition;
+
+        private Vector3 lightPosition = new Vector3(100f,50f,1600f);
         protected override void Initialize()
         {
           
@@ -317,8 +324,17 @@ namespace TGC.MonoGame.TP
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
             BoundingFrustum = new BoundingFrustum(Camera.View * Camera.Projection);
 
+            // ENVIROMENT MAP
+            CubeMapCamera = new StaticCamera(1f, SpherePosition, Vector3.UnitX, Vector3.Up);
+            CubeMapCamera.BuildProjection(1f, 0.1f,6000f , MathHelper.PiOver4);
+            // Camera Light
+
+           TargetLightCamera = new TargetCamera(1f,lightPosition , Vector3.Zero);
+            TargetLightCamera.BuildProjection(1f, 0.1f, 6000f,
+                MathHelper.PiOver2);
             base.Initialize();
         }
+
 
 
         /// <summary>
@@ -330,8 +346,11 @@ namespace TGC.MonoGame.TP
         {
             // Aca es donde deberiamos cargar todos los contenido necesarios antes de iniciar el juego.
             FullScreenQuad = new FullScreenQuad(GraphicsDevice);
-            RenderTarget = new RenderTarget2D(GraphicsDevice, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height, false, SurfaceFormat.Color, DepthFormat.Depth24);
-
+            RenderTarget = new RenderTarget2D(GraphicsDevice, ShadowmapSize, ShadowmapSize, false,
+                SurfaceFormat.Single, DepthFormat.Depth24, 0, RenderTargetUsage.PlatformContents);
+            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 2048, false,
+                SurfaceFormat.Color, DepthFormat.Depth24, 0, RenderTargetUsage.DiscardContents);
+            GraphicsDevice.BlendState = BlendState.Opaque;
             BodyModel = Content.Load<Model>(ContentFolder3D + "body/First");
             BoyModel = Content.Load<Model>(ContentFolder3D + "boy/uploads_files_2017656_body_1");
             BallModel = Content.Load<Model>(ContentFolder3D + "ball/uploads_files_910532_soccer-ball");
@@ -383,6 +402,7 @@ namespace TGC.MonoGame.TP
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
             BlinnEffect = Content.Load<Effect>(ContentFolderEffects + "BlinnPhong");
             PBR = Content.Load<Effect>(ContentFolderEffects + "PBR");
+            ShadowMap = Content.Load<Effect>(ContentFolderEffects + "ShadowMap");
 
            
             PostProcessEffect = Content.Load<Effect>(ContentFolderEffects + "PostProcess");
@@ -417,7 +437,7 @@ namespace TGC.MonoGame.TP
 
             //BridgeModel.Meshes.Get.GetVerticesAndIndicesFromModel.
 
-            //ConvexHullHelper.CreateShape(BridgeModel.Bones., ,,);
+            //ConvexHullHelper.CreateShape(BridgeModel.Bones., ,);
             
             //TexturaActual = RockTexture;
             BlinnEffect.Parameters["baseTexture"].SetValue(RockTexture);
@@ -426,13 +446,41 @@ namespace TGC.MonoGame.TP
             loseSoundEffect = Content.Load<SoundEffect>(ContentFolderMusic + "fail");
             BoostSoundEffect = Content.Load<SoundEffect>(ContentFolderMusic + "powerup");
             SoundEffect.Initialize();
-
+            SoundEffect.MasterVolume = 0.1f;
             Music.Play();
            // Music.Duration.Add(TimeSpan.MaxValue);
            SkyBox = new SkyBox(SkyBoxModel,SkyBoxTexture,SkyBoxEffect);
+           PBR.CurrentTechnique = PBR.Techniques["PBR"];
 
+           var positions = PBR.Parameters["lightPositions"].Elements;
+           var colors = PBR.Parameters["lightColors"].Elements;
+           List<Vector3> lightpositions = new List<Vector3>();
+           lightpositions.Add(new Vector3(400, 30, -300));
+           lightpositions.Add(new Vector3(400, 30, -600));
+           lightpositions.Add(new Vector3 (400, 30, -900));
+           lightpositions.Add(new Vector3(400, 30, -1200));
+           lightpositions.Add(new Vector3(400, 5, -1500));
+           lightpositions.Add(new Vector3(400, 5, -1800));
+           lightpositions.Add(new Vector3(100, 5, -2000));
+           lightpositions.Add(new Vector3(-200, 5, -2000));
+           lightpositions.Add(new Vector3(-500, 5, -2000));
+           lightpositions.Add(new Vector3(-800,5, -2000));
+           lightpositions.Add(new Vector3(-1100, 5, -2000));
+           lightpositions.Add(new Vector3(-1500, 5, -2000));
+           lightpositions.Add(new Vector3(-1800, 5, -2000));
+           lightpositions.Add(new Vector3(-2100, 5, -2000));
+           lightpositions.Add(new Vector3(-2500, 5, -2000));
+           lightpositions.Add(new Vector3(-800,50, -900));
+
+           for (var index = 0; index < lightpositions.Count; index++)
+           {
+
+               positions[index].SetValue(lightpositions[index]);
+               colors[index].SetValue(new Vector3(1000f, 1000f, 1000f));
+           }
             base.LoadContent();
         }
+
 
 
         private Matrix View { get; set; }
@@ -489,8 +537,9 @@ namespace TGC.MonoGame.TP
         private const float FRICTION = 0.99995f;
         private float JumpSpeed = 100f;
         private bool drawStar = true;
-        private bool Dir = false ;
-        private float BirdDir = -1f;
+        private bool Dir = true ;
+        private bool DirAnterior;
+
         protected override void Update(GameTime gameTime)
         {
             
@@ -636,23 +685,41 @@ namespace TGC.MonoGame.TP
                     Position.Y = 10f;
                     SpherePosition = Position;
                 }
-             
 
-
-
-                if (!IsBetween(BirdPosition.Z, -1450f, -2100f))
+                var ZBird = BirdPosition.Z;
+                if (ZBird> -1490f)
                 {
-                    Dir = !Dir;
+                    Dir = true;
                 }
+                if (ZBird < -2100f)
+                {
+                    Dir = false;
+                }
+
+               
+
 
                 if (Dir)
                 {
-                    BirdDir *= -1f;
+              
+                    BirdPosition += new Vector3(0f,0f ,-100f*elapsedTime);
+                }
+                else
+                {
+                    BirdPosition += new Vector3(0f, 0f,100f*elapsedTime);
+
                 }
 
-                BirdPosition = new Vector3(BirdPosition.X, BirdPosition.Y, BirdPosition.Z + 10f * BirdDir);
-
-                BirdWorld = Matrix.CreateTranslation(BirdPosition);
+                DirAnterior = Dir;
+                if (DirAnterior != Dir)
+                {
+                    BirdWorld = Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateTranslation(BirdPosition);
+                }
+                else
+                {
+                    BirdWorld = Matrix.CreateTranslation(BirdPosition);
+ 
+                }
 
                 if (BridgeCollision.Intersects(SphereCollide))
                 {
@@ -676,7 +743,9 @@ namespace TGC.MonoGame.TP
 
                 //Dejar siempre al final del update porque necesita la posicion ya calculada
                 SpherePosition = collisionObstacle(SphereCollide);
-               
+                CubeMapCamera.Position = SpherePosition;
+
+
                 collisionCheckpoint(SphereCollide);
                 alive = isOnTrack();
                 if (!alive)
@@ -719,12 +788,7 @@ namespace TGC.MonoGame.TP
         ///     Se llama cada vez que hay que refrescar la pantalla.
         ///     Escribir aqui el codigo referido al renderizado.
         /// </summary>
-        public static bool IsBetween<T>( T item, T start, T end)
-        {
-            return Comparer<T>.Default.Compare(item, start) >= 0
-                   && Comparer<T>.Default.Compare(item, end) <= 0;
-        }
-        
+
         protected override void Draw(GameTime gameTime)
         {
             
@@ -735,33 +799,7 @@ namespace TGC.MonoGame.TP
            /* GraphicsDevice.SetRenderTarget(RenderTarget);*/
             GraphicsDevice.Clear(Color.CornflowerBlue);
             
-            PBR.CurrentTechnique = PBR.Techniques["PBR"];
-
-            var positions = PBR.Parameters["lightPositions"].Elements;
-            var colors = PBR.Parameters["lightColors"].Elements;
-            List<Vector3> lightpositions = new List<Vector3>();
-            lightpositions.Add(new Vector3(400, 30, -300));
-            lightpositions.Add(new Vector3(400, 30, -600));
-            lightpositions.Add(new Vector3 (400, 30, -900));
-            lightpositions.Add(new Vector3(400, 30, -1200));
-            lightpositions.Add(new Vector3(400, 5, -1500));
-            lightpositions.Add(new Vector3(400, 5, -1800));
-            lightpositions.Add(new Vector3(100, 5, -2000));
-            lightpositions.Add(new Vector3(-200, 5, -2000));
-            lightpositions.Add(new Vector3(-500, 5, -2000));
-            lightpositions.Add(new Vector3(-800,5, -2000));
-            lightpositions.Add(new Vector3(-1100, 5, -2000));
-            lightpositions.Add(new Vector3(-1500, 5, -2000));
-            lightpositions.Add(new Vector3(-1800, 5, -2000));
-            lightpositions.Add(new Vector3(-2100, 5, -2000));
-            lightpositions.Add(new Vector3(-2500, 5, -2000));
-       
-            for (var index = 0; index < lightpositions.Count; index++)
-            {
-
-                positions[index].SetValue(lightpositions[index]);
-                colors[index].SetValue(new Vector3(800f, 800f, 800f));
-            }
+           
 
         
 
@@ -784,6 +822,121 @@ namespace TGC.MonoGame.TP
             Effect.Parameters["Projection"].SetValue(Camera.Projection);
             MenuEffect.Parameters["View"].SetValue(Camera.View);
             MenuEffect.Parameters["Projection"].SetValue(Camera.Projection);
+            if (TexturaActual == RockTexture)
+            {
+                PBR.Parameters["cantidadEnviroment"].SetValue(0.1f);
+
+            }
+            if (TexturaActual == RubberTexture)
+            {
+                PBR.Parameters["cantidadEnviroment"].SetValue(0.3f);
+
+            }
+            if (TexturaActual == MetalTexture)
+            {
+                PBR.Parameters["cantidadEnviroment"].SetValue(0.8f);
+
+            }
+            DrawWithEnviromentalMap();
+           
+
+           /* GraphicsDevice.SetRenderTarget(null);
+            GraphicsDevice.Clear(Color.Black);
+
+            PostProcessEffect.CurrentTechnique = PostProcessEffect.Techniques["PostProcessing"];
+            PostProcessEffect.Parameters["ModelTexture"].SetValue(RenderTarget);
+            FullScreenQuad.Draw(PostProcessEffect); */
+            GraphicsDevice.DepthStencilState = DepthStencilState.None;
+ 
+        }
+
+        private void DrawWithEnviromentalMap()
+        {
+            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+            // Draw to our cubemap from the robot position
+            for (var face = CubeMapFace.PositiveX; face <= CubeMapFace.NegativeZ; face++)
+            {
+                // Set the render target as our cubemap face, we are drawing the scene in this texture
+                GraphicsDevice.SetRenderTarget(EnvironmentMapRenderTarget, face);
+                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
+
+                
+                SetCubemapCameraForOrientation(face);
+
+                CubeMapCamera.BuildView();
+                BlinnEffect.Parameters["shadowMap"].SetValue(RenderTarget);
+                BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
+                BlinnEffect.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
+                BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);
+
+                DrawAllExceptSphere(CubeMapCamera.View, CubeMapCamera.Projection);
+            
+             
+            }
+         
+            GraphicsDevice.SetRenderTarget(null);
+            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
+            BlinnEffect.Parameters["shadowMap"].SetValue(RenderTarget);
+            BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
+            BlinnEffect.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
+            BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);
+
+            DrawAllExceptSphere(Camera.View, Camera.Projection);
+            
+            PBR.Parameters["environmentMap"].SetValue(EnvironmentMapRenderTarget);
+            PBR.Parameters["eyePosition"].SetValue(Camera.Position);
+            PBR.Parameters["shadowMap"].SetValue(RenderTarget);
+            PBR.Parameters["lightPosition"].SetValue(lightPosition);
+            PBR.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
+            PBR.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);
+
+            if (!inMenu)
+            {
+                if (BoundingFrustum.Intersects(SphereCollide))
+                {
+                    DrawSphere(SpherePosition, 0f, Pitch, Roll);
+                }
+            }
+           
+        }
+        private void SetCubemapCameraForOrientation(CubeMapFace face)
+        {
+            switch (face)
+            {
+                default:
+                case CubeMapFace.PositiveX:
+                    CubeMapCamera.FrontDirection = -Vector3.UnitX;
+                    CubeMapCamera.UpDirection = Vector3.Down;
+                    break;
+
+                case CubeMapFace.NegativeX:
+                    CubeMapCamera.FrontDirection = Vector3.UnitX;
+                    CubeMapCamera.UpDirection = Vector3.Down;
+                    break;
+
+                case CubeMapFace.PositiveY:
+                    CubeMapCamera.FrontDirection = Vector3.Down;
+                    CubeMapCamera.UpDirection = Vector3.UnitZ;
+                    break;
+
+                case CubeMapFace.NegativeY:
+                    CubeMapCamera.FrontDirection = Vector3.Up;
+                    CubeMapCamera.UpDirection = -Vector3.UnitZ;
+                    break;
+
+                case CubeMapFace.PositiveZ:
+                    CubeMapCamera.FrontDirection = -Vector3.UnitZ;
+                    CubeMapCamera.UpDirection = Vector3.Down;
+                    break;
+
+                case CubeMapFace.NegativeZ:
+                    CubeMapCamera.FrontDirection = Vector3.UnitZ;
+                    CubeMapCamera.UpDirection = Vector3.Down;
+                    break;
+            }
+        }
+        private void DrawAllExceptSphere(Matrix view,Matrix projection)
+        {
             if (!inMenu)
             {
                 var originalRasterizerState = GraphicsDevice.RasterizerState;
@@ -791,10 +944,15 @@ namespace TGC.MonoGame.TP
                 rasterizerState.CullMode = CullMode.None;
                 Graphics.GraphicsDevice.RasterizerState = rasterizerState;
 
-                SkyBox.Draw(Camera.View, Camera.Projection, Camera.Position);
+                SkyBox.Draw(view,projection, Camera.Position);
                 GraphicsDevice.RasterizerState = originalRasterizerState;
+                GraphicsDevice.SetRenderTarget(RenderTarget);
+                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 1f, 0);
+                generateLevelDepth();
+                GraphicsDevice.SetRenderTarget(null);
+                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
 
-                generateLevel();
+                generateLevel(view,projection);
                 if (Checkpoint1==0)
                 {
                     DrawCylinder(Cylinder, Checkpoint1Position);
@@ -805,37 +963,226 @@ namespace TGC.MonoGame.TP
                     DrawCylinder(Cylinder, Checkpoint2Position);
                 }
 
-                if (BoundingFrustum.Intersects(SphereCollide))
-                {
-                    DrawSphere(SpherePosition, 0f, Pitch, Roll);
-                }
+               
             }
             else
             {
-               var originalRasterizerState = GraphicsDevice.RasterizerState;
+                var originalRasterizerState = GraphicsDevice.RasterizerState;
                 var rasterizerState = new RasterizerState();
                 rasterizerState.CullMode = CullMode.None;
                 Graphics.GraphicsDevice.RasterizerState = rasterizerState;
                 
                
-                    PlayMatrix = Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateScale(3f) * Matrix.CreateTranslation(new Vector3(2000f, 150f, 1500f));
-                    DibujarConBlinnPhongYTextura(PlayMatrix,PlayModel,Color.LightBlue,MenuTexture2D);
+                PlayMatrix = Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateScale(3f) * Matrix.CreateTranslation(new Vector3(2000f, 150f, 1500f));
+                DibujarConBlinnPhongYTextura(PlayMatrix,PlayModel,Color.LightBlue,MenuTexture2D,view,projection);
                    
                 
                
-                    TextMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1975f, 450f, 1500f));
-                    DibujarConBlinnPhong(TextMatrix,TextModel,Color.Green);
+                TextMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1975f, 450f, 1500f));
+                DibujarConBlinnPhong(TextMatrix,TextModel,Color.Green,view,projection);
                 
                 GraphicsDevice.RasterizerState = originalRasterizerState;
 
             }
-            /*GraphicsDevice.SetRenderTarget(null);
-            GraphicsDevice.Clear(Color.Black);
+        }
 
-            PostProcessEffect.CurrentTechnique = PostProcessEffect.Techniques["PostProcessing"];
-            PostProcessEffect.Parameters["ModelTexture"].SetValue(RenderTarget);
-            FullScreenQuad.Draw(PostProcessEffect); */
+        private void generateLevelDepth()
+        {
+            for (float i = 0; i < 40; i++)
+            {
+             for (float j = 0; j < 20; j++)
+             {
                 
+                    GrassWorld=Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f - 6000f, 0, j * -200f);
+                    dibujarDepth(GrassWorld,GrassModel,BlinnEffect);
+                
+             }
+            }
+
+
+            
+            BikeWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(30f) * Matrix.CreateTranslation(700f, 50f, 0f);
+            dibujarDepth(BikeWorld,BikeModel,BlinnEffect);
+            
+
+            for (float i = 0; i < 10; i++)
+            {
+                
+                    PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i*200f-1500, 5f, - 2000f);
+                    dibujarDepth(PathWorld,PathModel,BlinnEffect);
+
+            }
+     
+            for (float i = 0; i < 5; i++)
+            {
+                
+                    PathWorld =  Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i * 200f + 400f, 5f, -2000);
+                    dibujarDepth(PathWorld,PathModel,BlinnEffect);
+
+                
+            }
+            for (float i = 0; i < 4; i++)
+            {
+                PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(400f, 5f, i * -200f );
+                    dibujarDepth(PathWorld,PathModel,BlinnEffect);
+
+                
+            }
+            for (float i = 0; i < 2; i++)
+            {
+               
+                    PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(400f, 5f, i * -200f - 1750f);
+                    dibujarDepth(PathWorld,PathModel,BlinnEffect);
+
+            }
+
+            MonumentWorld =  Matrix.CreateScale(8f) * Matrix.CreateTranslation(400f, 6f, -2500f);
+            dibujarDepth(MonumentWorld,MonumentModel,BlinnEffect);
+
+            SlideWorld =  Matrix.CreateScale(140f) * Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateTranslation(-520f, 6f, -2000f);
+            dibujarDepth(SlideWorld,SlideModel,BlinnEffect);
+
+            if (BoundingFrustum.Intersects(BallCollide1))
+            {
+                BallWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.8f) * Matrix.CreateTranslation(400f, 12f, 0f + -200f);
+                dibujarDepth(BallWorld,BallModel,BlinnEffect);
+
+            }
+
+            if (BoundingFrustum.Intersects(BallCollide2))
+            {
+                BallWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(1f) * Matrix.CreateTranslation(350f, 12f, 0f + -400f);
+                dibujarDepth(BallWorld,BallModel,BlinnEffect);
+            }
+            if (BoundingFrustum.Intersects(BallCollide3)){
+
+                
+                    BallWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(1f) * Matrix.CreateTranslation(450f, 12f, 0f +  -600f);
+                    dibujarDepth(BallWorld,BallModel,BlinnEffect);
+                
+            }
+            
+                BirdWorld = Matrix.CreateScale(3f) * Matrix.CreateTranslation(BirdPosition);
+                dibujarDepth(BirdWorld,BirdModel,BlinnEffect);
+            
+            
+                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-3200, 12f, -2000f);
+                dibujarDepth(ArcoWorld,ArcoModel,BlinnEffect);
+            
+
+            BodyWorld =Matrix.CreateScale(1f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateTranslation(200f, 150f, 150f);
+            dibujarDepth(BodyWorld,BodyModel,BlinnEffect);
+
+            
+
+        
+            BodyWorld =Matrix.CreateScale(0.6f) * Matrix.CreateTranslation(200f, 150f, 0f);
+            dibujarDepth(BodyWorld,BodyModel,BlinnEffect);
+            
+
+            BoyWorld = Matrix.CreateRotationY(MathHelper.PiOver4) *Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f, 8f, -500f);
+            dibujarDepth(BodyWorld,BodyModel,BlinnEffect);
+            
+
+            for (float i = 0; i < 25; i++)
+            {
+              
+                    TreeWorld = Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(300f, 8f, i * -40f + 100f);
+                    dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
+
+            }
+
+            for (float i = 0; i < 25; i++)
+            {
+             
+                    Tree1World =Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(510f, 8f, i * -40f + 100f);
+                    dibujarDepth(Tree1World,Tree1Model,BlinnEffect);
+                
+            }
+
+            for (float i = 0; i < 6; i++)
+            {
+             
+                    TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-300f, 8f, i * -300f + 100f);
+                    dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
+                
+            }
+            for (float i = 0; i < 9; i++)
+            {
+                TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f-600f, 8f, -1600f);
+                    dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
+            }
+            for (float i = 0; i < 11; i++)
+            {
+                TreeWorld =Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f+50f, 8f, -2300f);
+
+                    dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
+                
+            }
+
+            for (float i = 0; i < 13; i++)
+            {
+               TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(1000, 8f, i * -200f + 100f);
+               dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
+
+            }
+
+
+            DogWorld =  Matrix.CreateScale(0.3f) * Matrix.CreateTranslation(700f, 6f, -450f);
+            dibujarDepth(DogWorld,DogModel,BlinnEffect);
+                            
+
+            if (BoundingFrustum.Intersects(BridgeCollision))
+            {
+                BridgeWorld = Matrix.CreateScale(100f) * Matrix.CreateRotationX(-1f * MathHelper.PiOver2) * Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateTranslation(400f, 0f, -1300f); 
+                dibujarDepth(BridgeWorld,BridgeModel,BlinnEffect);
+                
+            }
+
+            for (float i = 0; i < 3; i++)
+            {
+                
+                    BenchWorld = Matrix.CreateScale(2f) * Matrix.CreateRotationY(-1f * MathHelper.Pi) * Matrix.CreateTranslation(-100f, -100f, i * -320 - 320f);
+                    dibujarDepth(BridgeWorld,BridgeModel,BlinnEffect);
+                
+            }
+
+           
+            if (drawStar)
+            {
+               
+                    StarWorld = Matrix.CreateScale(1f) * Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateTranslation(400f, 5f, -100f);
+                    dibujarDepth(StarWorld,StarModel,BlinnEffect);
+                
+            }
+
+            for (float i = 0; i < 5; i++)
+            {
+                for (float j = 0; j < 5; j++)
+                {
+                    GrassWorld = Matrix.CreateScale(0.4f) *
+                                 Matrix.CreateTranslation(-i * 200f - 600f, 6f, j * -200f - 1750f);
+                    dibujarDepth(GrassWorld,GrassModel,BlinnEffect);
+
+                }
+            }
+
+            for (float i = 0; i < 5; i++)
+            {
+                for (float j = 0; j < 3; j++)
+                {
+                   
+                        GrassWorld =Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f, 0, j * -200f - 1000f);
+                        dibujarDepth(GrassWorld,GrassModel,BlinnEffect);
+
+                }
+                
+            }
+
+            LampWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(700f, 6f, -1900f);
+            dibujarDepth(LampWorld,LampModel,BlinnEffect);
+            
+    
         }
 
         private void DrawCylinder(GeometricPrimitive geometry, Vector3 position)
@@ -851,7 +1198,21 @@ namespace TGC.MonoGame.TP
             effect.Parameters["Alfa"].SetValue(1f);
 
         }
-        
+        private void DrawShadows()
+        {
+
+            
+        }
+
+        private void DibujarTodoDepth()
+        {
+            
+        }
+
+        private void DibujarTodoConSombras()
+        {
+        }
+
         
         /// <summary>
         ///     Libero los recursos que se cargaron en el juego.
@@ -884,6 +1245,22 @@ namespace TGC.MonoGame.TP
 
         }
 
+        private void dibujarDepth(Matrix mundo,Model model,Effect effect)
+        {
+      
+                GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+                // Set the render target as our shadow map, we are drawing the depth into this texture
+                
+                effect.CurrentTechnique = effect.Techniques["DepthPass"];
+                foreach (var mesh in model.Meshes)
+                {            
+                    Matrix meshMatrix = mesh.ParentBone.Transform;
+                    effect.Parameters["WorldViewProjection"].SetValue(meshMatrix*mundo * TargetLightCamera.View * TargetLightCamera.Projection);
+                    mesh.Draw();
+
+                } 
+        }
+
         private void DibujarPBR(Matrix mundo, Model model)
         {
             PBR.Parameters["albedoTexture"]?.SetValue(TexturaActual);
@@ -891,14 +1268,16 @@ namespace TGC.MonoGame.TP
             PBR.Parameters["metallicTexture"]?.SetValue(TexturaMetal);
             PBR.Parameters["roughnessTexture"]?.SetValue(TexturaRoughness);
             PBR.Parameters["aoTexture"]?.SetValue(TexturaAO);
+
             PBR.Parameters["matWorldViewProj"].SetValue(mundo *Camera.View *Camera.Projection);
             PBR.Parameters["matInverseTransposeWorld"].SetValue(Matrix.Transpose(Matrix.Invert(mundo)));
+            
             foreach (var mesh in model.Meshes)
             {
                 Matrix meshMatrix = mesh.ParentBone.Transform;
                 PBR.Parameters["matWorld"].SetValue(mundo*meshMatrix);
-                BlinnEffect.Parameters["WorldViewProjection"].SetValue(meshMatrix*mundo*Camera.View*Camera.Projection);
-                BlinnEffect.Parameters["InverseTransposeWorld"].SetValue(Matrix.Invert(Matrix.Transpose(mundo)));
+                /*PBR.Parameters["matWorldViewProj"].SetValue(mundo *Camera.View *Camera.Projection);
+                PBR.Parameters["matInverseTransposeWorld"].SetValue(Matrix.Transpose(Matrix.Invert(mundo)));*/
                 mesh.Draw();
             }
 
@@ -979,7 +1358,6 @@ namespace TGC.MonoGame.TP
         {
             if (BallCollide1.Intersects(esfera) || BallCollide2.Intersects(esfera) || BallCollide3.Intersects(esfera))
             {
-              //no se porque no anda
 
               return Loss();
 
@@ -987,38 +1365,42 @@ namespace TGC.MonoGame.TP
             return  SpherePosition;
 
         }
-        private void DibujarConBlinnPhongYTextura(Matrix MundoCalculado,Model Modelo,Color color,Texture2D textura)
+        private void DibujarConBlinnPhongYTextura(Matrix MundoCalculado,Model Modelo,Color color,Texture2D textura,Matrix view,Matrix projection)
         {
-            
             BlinnEffect.Parameters["baseTexture"].SetValue(textura);
             BlinnEffect.Parameters["ambientColor"].SetValue(color.ToVector3());
             BlinnEffect.Parameters["diffuseColor"].SetValue(color.ToVector3());
             BlinnEffect.Parameters["specularColor"].SetValue(color.ToVector3());
+            BlinnEffect.Parameters["shadowMap"].SetValue(RenderTarget);
+            BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
+            BlinnEffect.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
+            BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);
+
             foreach (var mesh in Modelo.Meshes)
             {
                 Matrix meshMatrix = mesh.ParentBone.Transform;
                 BlinnEffect.Parameters["World"].SetValue(meshMatrix*MundoCalculado);
-                BlinnEffect.Parameters["WorldViewProjection"].SetValue(meshMatrix*MundoCalculado*Camera.View*Camera.Projection);
+                BlinnEffect.Parameters["WorldViewProjection"].SetValue(meshMatrix*MundoCalculado*view*projection);
                 BlinnEffect.Parameters["InverseTransposeWorld"].SetValue(Matrix.Transpose(Matrix.Invert(MundoCalculado)));
                 mesh.Draw();
             }
 
         }
 
-        private void DibujarConBlinnPhong(Matrix MundoCalculado,Model Modelo,Color color)
+        private void DibujarConBlinnPhong(Matrix MundoCalculado,Model Modelo,Color color, Matrix view, Matrix projection)
         {
                 BlinnEffect.CurrentTechnique = BlinnEffect.Techniques["BasicPlainDrawing"];
-          
                 BlinnEffect.Parameters["ambientColor"].SetValue(color.ToVector3());
                 BlinnEffect.Parameters["diffuseColor"].SetValue(color.ToVector3());
                 BlinnEffect.Parameters["specularColor"].SetValue(color.ToVector3());
+              
                 foreach (var mesh in Modelo.Meshes)
                 {
 
                     Matrix meshMatrix = mesh.ParentBone.Transform;
                     BlinnEffect.Parameters["World"].SetValue(meshMatrix * MundoCalculado);
                     BlinnEffect.Parameters["WorldViewProjection"]
-                        .SetValue(meshMatrix * MundoCalculado * Camera.View * Camera.Projection);
+                        .SetValue(meshMatrix * MundoCalculado * view* projection);
 
                     BlinnEffect.Parameters["InverseTransposeWorld"]
                         .SetValue(Matrix.Invert(Matrix.Transpose(MundoCalculado)));
@@ -1028,7 +1410,7 @@ namespace TGC.MonoGame.TP
             
                 BlinnEffect.CurrentTechnique = BlinnEffect.Techniques["BasicColorDrawing"];
         }
-        private void generateLevel()
+        private void generateLevel(Matrix view,Matrix projection)
         {
             Color ActualColor;
             ActualColor = Color.DarkGreen;
@@ -1038,7 +1420,7 @@ namespace TGC.MonoGame.TP
              {
                 
                     GrassWorld=Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f - 6000f, 0, j * -200f);
-                    DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor);
+                    DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor,view,projection);
                 
              }
             }
@@ -1047,14 +1429,14 @@ namespace TGC.MonoGame.TP
 
             
             BikeWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(30f) * Matrix.CreateTranslation(700f, 50f, 0f);
-            DibujarConBlinnPhong(BikeWorld,BikeModel,ActualColor);
+            DibujarConBlinnPhong(BikeWorld,BikeModel,ActualColor,view,projection);
             
 
             for (float i = 0; i < 10; i++)
             {
                 
                     PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i*200f-1500, 5f, - 2000f);
-                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor);
+                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);
 
             }
      
@@ -1062,14 +1444,14 @@ namespace TGC.MonoGame.TP
             {
                 
                     PathWorld =  Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i * 200f + 400f, 5f, -2000);
-                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor);
+                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);
 
                 
             }
             for (float i = 0; i < 4; i++)
             {
                 PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(400f, 5f, i * -200f );
-                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor);
+                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);
 
                 
             }
@@ -1077,59 +1459,59 @@ namespace TGC.MonoGame.TP
             {
                
                     PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(400f, 5f, i * -200f - 1750f);
-                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor);
+                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);
 
             }
 
             ActualColor = Color.DarkGray;
             MonumentWorld =  Matrix.CreateScale(8f) * Matrix.CreateTranslation(400f, 6f, -2500f);
-            DibujarConBlinnPhong(MonumentWorld,MonumentModel,ActualColor);
+            DibujarConBlinnPhong(MonumentWorld,MonumentModel,ActualColor,view,projection);
 
             SlideWorld =  Matrix.CreateScale(140f) * Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateTranslation(-520f, 6f, -2000f);
-            DibujarConBlinnPhong(SlideWorld,SlideModel,ActualColor);
+            DibujarConBlinnPhong(SlideWorld,SlideModel,ActualColor,view,projection);
 
             ActualColor = Color.White;
             if (BoundingFrustum.Intersects(BallCollide1))
             {
                 BallWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.8f) * Matrix.CreateTranslation(400f, 12f, 0f + -200f);
-                DibujarConBlinnPhong(BallWorld,BallModel,ActualColor);
+                DibujarConBlinnPhong(BallWorld,BallModel,ActualColor,view,projection);
 
             }
 
             if (BoundingFrustum.Intersects(BallCollide2))
             {
                 BallWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(1f) * Matrix.CreateTranslation(350f, 12f, 0f + -400f);
-                DibujarConBlinnPhong(BallWorld,BallModel,ActualColor);
+                DibujarConBlinnPhong(BallWorld,BallModel,ActualColor,view,projection);
             }
             if (BoundingFrustum.Intersects(BallCollide3)){
 
                 
                     BallWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(1f) * Matrix.CreateTranslation(450f, 12f, 0f +  -600f);
-                    DibujarConBlinnPhong(BallWorld,BallModel,ActualColor);
+                    DibujarConBlinnPhong(BallWorld,BallModel,ActualColor,view,projection);
                 
             }
             
                 BirdWorld = Matrix.CreateScale(3f) * Matrix.CreateTranslation(BirdPosition);
-                DibujarConBlinnPhong(BirdWorld,BirdModel,ActualColor);
+                DibujarConBlinnPhong(BirdWorld,BirdModel,ActualColor,view,projection);
             
             
                 ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-3200, 12f, -2000f);
-                DibujarConBlinnPhong(ArcoWorld,ArcoModel,ActualColor);
+                DibujarConBlinnPhong(ArcoWorld,ArcoModel,ActualColor,view,projection);
             
 
             ActualColor = Color.LightPink;
             BodyWorld =Matrix.CreateScale(1f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateTranslation(200f, 150f, 150f);
-            DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor);
+            DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor,view,projection);
 
             
 
         
             BodyWorld =Matrix.CreateScale(0.6f) * Matrix.CreateTranslation(200f, 150f, 0f);
-            DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor);
+            DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor,view,projection);
             
 
             BoyWorld = Matrix.CreateRotationY(MathHelper.PiOver4) *Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f, 8f, -500f);
-            DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor);
+            DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor,view,projection);
             
             ActualColor = Color.LimeGreen;
 
@@ -1137,7 +1519,7 @@ namespace TGC.MonoGame.TP
             {
               
                     TreeWorld = Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(300f, 8f, i * -40f + 100f);
-                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor);
+                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
 
             }
 
@@ -1145,7 +1527,7 @@ namespace TGC.MonoGame.TP
             {
              
                     Tree1World =Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(510f, 8f, i * -40f + 100f);
-                    DibujarConBlinnPhong(Tree1World,Tree1Model,ActualColor);
+                    DibujarConBlinnPhong(Tree1World,Tree1Model,ActualColor,view,projection);
                 
             }
 
@@ -1153,39 +1535,39 @@ namespace TGC.MonoGame.TP
             {
              
                     TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-300f, 8f, i * -300f + 100f);
-                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor);
+                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
                 
             }
             for (float i = 0; i < 9; i++)
             {
                 TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f-600f, 8f, -1600f);
-                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor);
+                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
             }
             for (float i = 0; i < 11; i++)
             {
                 TreeWorld =Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f+50f, 8f, -2300f);
 
-                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor);
+                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
                 
             }
 
             for (float i = 0; i < 13; i++)
             {
                TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(1000, 8f, i * -200f + 100f);
-               DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor);
+               DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
 
             }
 
             ActualColor =Color.Peru;
 
             DogWorld =  Matrix.CreateScale(0.3f) * Matrix.CreateTranslation(700f, 6f, -450f);
-            DibujarConBlinnPhong(DogWorld,DogModel,ActualColor);
+            DibujarConBlinnPhong(DogWorld,DogModel,ActualColor,view,projection);
                             
 
             if (BoundingFrustum.Intersects(BridgeCollision))
             {
                 BridgeWorld = Matrix.CreateScale(100f) * Matrix.CreateRotationX(-1f * MathHelper.PiOver2) * Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateTranslation(400f, 0f, -1300f); 
-                DibujarConBlinnPhong(BridgeWorld,BridgeModel,ActualColor);
+                DibujarConBlinnPhong(BridgeWorld,BridgeModel,ActualColor,view,projection);
                 
             }
 
@@ -1193,7 +1575,7 @@ namespace TGC.MonoGame.TP
             {
                 
                     BenchWorld = Matrix.CreateScale(2f) * Matrix.CreateRotationY(-1f * MathHelper.Pi) * Matrix.CreateTranslation(-100f, -100f, i * -320 - 320f);
-                    DibujarConBlinnPhong(BridgeWorld,BridgeModel,ActualColor);
+                    DibujarConBlinnPhong(BridgeWorld,BridgeModel,ActualColor,view,projection);
                 
             }
             ActualColor =Color.Yellow;
@@ -1203,7 +1585,7 @@ namespace TGC.MonoGame.TP
             {
                
                     StarWorld = Matrix.CreateScale(1f) * Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateTranslation(400f, 5f, -100f);
-                    DibujarConBlinnPhong(StarWorld,StarModel,ActualColor);
+                    DibujarConBlinnPhong(StarWorld,StarModel,ActualColor,view,projection);
                 
             }
 
@@ -1213,19 +1595,19 @@ namespace TGC.MonoGame.TP
                 {
                     GrassWorld = Matrix.CreateScale(0.4f) *
                                  Matrix.CreateTranslation(-i * 200f - 600f, 6f, j * -200f - 1750f);
-                    DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor);
+                    DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor,view,projection);
 
                 }
             }
 
-            ActualColor = Color.Blue;
+            ActualColor= Color.Blue;
             for (float i = 0; i < 5; i++)
             {
                 for (float j = 0; j < 3; j++)
                 {
                    
                         GrassWorld =Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f, 0, j * -200f - 1000f);
-                        DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor);
+                        DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor,view,projection);
 
                 }
                 
@@ -1233,7 +1615,7 @@ namespace TGC.MonoGame.TP
 
             ActualColor = Color.Black;
             LampWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(700f, 6f, -1900f);
-            DibujarConBlinnPhong(LampWorld,LampModel,ActualColor);
+            DibujarConBlinnPhong(LampWorld,LampModel,ActualColor,view,projection);
             
     }
 

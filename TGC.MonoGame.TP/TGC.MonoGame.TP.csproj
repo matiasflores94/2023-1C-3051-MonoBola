@@ -33,7 +33,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Content\Effects\BlinnPhong.fx" />
+    <ClCompile Include="Content\Effects\EnvironmentMap.fx" />
     <ClCompile Include="Content\Effects\PBR.fx" />
+    <ClCompile Include="Content\Effects\ShadowMap.fx" />
     <ClCompile Include="Content\Effects\SkyBox.fx" />
     <ClCompile Include="Content\Effects\PostProcess.fx" />
   </ItemGroup>
