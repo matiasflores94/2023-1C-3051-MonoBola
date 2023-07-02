@@ -75,6 +75,7 @@ namespace TGC.MonoGame.TP
         private SoundEffect BoostSoundEffect { get; set; }
         private SoundEffect ChangetSoundEffect { get; set; }
         private BoundingFrustum BoundingFrustum { get; set; }
+        public Matrix FootWorld { get; set; }
 
         private SpriteBatch spriteBatch { get; set; }
         public Model SunModel { get; set; }
@@ -91,6 +92,7 @@ namespace TGC.MonoGame.TP
         private Effect PostProcessEffect { get; set; }
 
         private Effect MetalEffect { get; set; }
+        public Model FootModel { get; set; }
 
         private Model SphereModel { get; set; }
         private Model BodyModel { get; set; }
@@ -162,6 +164,7 @@ namespace TGC.MonoGame.TP
         private OrientedBoundingBox FinishCollide { get; set; }
         private OrientedBoundingBox Pared1 { get; set; }
         private OrientedBoundingBox AguaCollide { get; set; }
+        private OrientedBoundingBox FootOBB { get; set; }
 
         private OrientedBoundingBox Pared2 { get; set; }
         private OrientedBoundingBox Pared3 { get; set; }
@@ -283,7 +286,7 @@ namespace TGC.MonoGame.TP
             SlideWorld = Matrix.Identity;
             LampWorld = Matrix.Identity;
             PlayMatrix = Matrix.Identity;
-
+            FootWorld=Matrix.CreateScale(30f)* Matrix.CreateTranslation(new Vector3(-3000,350,-2000));
             BirdPosition = new Vector3(-1000f, 150f, -1500f);
             Checkpoint1 = 0;
             Checkpoint2 = 0;
@@ -300,6 +303,8 @@ namespace TGC.MonoGame.TP
             Pared3 = new OrientedBoundingBox(new Vector3(-1445,500,-1760), new Vector3(1740,2000,1));
             Pared4 = new OrientedBoundingBox(new Vector3(-1327.5f,500,-2240), new Vector3(1900,2000,1));
             AguaCollide = new OrientedBoundingBox(new Vector3(500,0,-1150), new Vector3(500,7,300));
+            FootOBB = new OrientedBoundingBox(new Vector3(-3000,350,-2000), new Vector3(50,40,200));
+
             ArenaCollide = new OrientedBoundingBox(new Vector3(-940, 4, -2550), new Vector3(500, 1 ,800));
             SlideCollide = new OrientedBoundingBox(new Vector3(-450, 20, -2000), new Vector3(80, 190 ,100));
             
@@ -376,6 +381,7 @@ namespace TGC.MonoGame.TP
             PlayModel = Content.Load<Model>(ContentFolder3D + "menu/arcade");
             TextModel = Content.Load<Model>(ContentFolder3D + "play/text3d");
             SunModel = Content.Load<Model>(ContentFolder3D + "sun/sun");
+            FootModel = Content.Load<Model>(ContentFolder3D + "foot/foot");
 
             SkyBoxTexture = Content.Load<TextureCube>(ContentFolderTextures + "skybox");
 
@@ -439,6 +445,7 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(ArcoModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(BallModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(SphereModel,PBR);
+            FuncionesGenerales.loadEffectOnMesh(FootModel, BlinnEffect);
 
             //BridgeModel.Meshes.Get.GetVerticesAndIndicesFromModel.
 
@@ -547,6 +554,9 @@ namespace TGC.MonoGame.TP
         private bool drawStar = true;
         private bool Dir = true ;
         private bool DirAnterior;
+        private bool Bajando= false;
+
+        private float footCeiling = 340f;
 
         protected override void Update(GameTime gameTime)
         {
@@ -605,10 +615,30 @@ namespace TGC.MonoGame.TP
                     TexturaAO = GomaAO;
 
                 }
+                //Movimiento del Pie
+                var FootPosition = FootWorld.Translation;
+                if (FootPosition.Y > footCeiling)
+                {
+                    Bajando = true;
+                }
 
+                if (FootPosition.Y < -80f)
+                {
+                    Bajando = false;
+                }
+                if (Bajando)
+                {
+                    FootWorld *= Matrix.CreateTranslation(0f, -350f * elapsedTime, 0f);
+                    FootOBB.Center = FootWorld.Translation;
+                }
+                else
+                {
+                    FootWorld *= Matrix.CreateTranslation(0f, 190f * elapsedTime, 0f);
+                    FootOBB.Center = FootWorld.Translation;
+                }
                 // Capturar Input teclado
                
-
+            
 
                 isOnGround = MathF.Abs(SpherePosition.Y) <= 10f /*float.Epsilon*/;
                 if (BridgeCollision.Intersects(SphereCollide) || SlideCollide.Intersects(SphereCollide))
@@ -710,11 +740,11 @@ namespace TGC.MonoGame.TP
                 if (Dir)
                 {
               
-                    BirdPosition += new Vector3(0f,0f ,-100f*elapsedTime);
+                    BirdPosition += new Vector3(0f,0f ,-2500f*elapsedTime);
                 }
                 else
                 {
-                    BirdPosition += new Vector3(0f, 0f,100f*elapsedTime);
+                    BirdPosition += new Vector3(0f, 0f,250f*elapsedTime);
 
                 }
 
@@ -1059,7 +1089,8 @@ namespace TGC.MonoGame.TP
             
             BikeWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(30f) * Matrix.CreateTranslation(700f, 50f, 0f);
             dibujarDepth(BikeWorld,BikeModel,BlinnEffect);
-            
+             
+            dibujarDepth(FootWorld,FootModel,BlinnEffect);
 
             for (float i = 0; i < 10; i++)
             {
@@ -1241,6 +1272,7 @@ namespace TGC.MonoGame.TP
     
         }
 
+
         private void DrawCylinder(GeometricPrimitive geometry, Vector3 position)
         {
             var effect = Effect;
@@ -1403,7 +1435,7 @@ namespace TGC.MonoGame.TP
         }
         private Vector3 collisionObstacle(BoundingSphere esfera)
         {
-            if (BallCollide1.Intersects(esfera) || BallCollide2.Intersects(esfera) || BallCollide3.Intersects(esfera))
+            if (BallCollide1.Intersects(esfera) || BallCollide2.Intersects(esfera) || BallCollide3.Intersects(esfera) || FootOBB.Intersects(esfera))
             {
 
               return Loss();
@@ -1559,7 +1591,8 @@ namespace TGC.MonoGame.TP
 
             BoyWorld = Matrix.CreateRotationY(MathHelper.PiOver4) *Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f, 8f, -500f);
             DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor,view,projection);
-            
+            DibujarConBlinnPhong(FootWorld,FootModel,ActualColor,view,projection);
+
             ActualColor = Color.LimeGreen;
 
             for (float i = 0; i < 25; i++)
