@@ -77,6 +77,8 @@ namespace TGC.MonoGame.TP
         private BoundingFrustum BoundingFrustum { get; set; }
 
         private SpriteBatch spriteBatch { get; set; }
+        public Model SunModel { get; set; }
+
 
         private GraphicsDeviceManager Graphics { get; set; }
         private TargetCamera Camera { get; set; }
@@ -231,7 +233,7 @@ namespace TGC.MonoGame.TP
         /// </summary>
         private Vector3 BridgePosition;
 
-        private Vector3 lightPosition = new Vector3(100f,50f,1600f);
+        private Vector3 lightPosition = new Vector3(100f,1000f,-1600f);
         protected override void Initialize()
         {
           
@@ -373,7 +375,8 @@ namespace TGC.MonoGame.TP
             SkyBoxModel = Content.Load<Model>(ContentFolder3D + "skybox/cube");
             PlayModel = Content.Load<Model>(ContentFolder3D + "menu/arcade");
             TextModel = Content.Load<Model>(ContentFolder3D + "play/text3d");
-            
+            SunModel = Content.Load<Model>(ContentFolder3D + "sun/sun");
+
             SkyBoxTexture = Content.Load<TextureCube>(ContentFolderTextures + "skybox");
 
             MenuTexture2D = Content.Load<Texture2D>(ContentFolder3D + "menu/tex");
@@ -422,6 +425,8 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(TreeModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(Tree1Model, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(Tree2Model, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(SunModel, BlinnEffect);
+
             FuncionesGenerales.loadEffectOnMesh(DogModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(StarModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(BridgeModel, BlinnEffect);
@@ -455,7 +460,10 @@ namespace TGC.MonoGame.TP
            var positions = PBR.Parameters["lightPositions"].Elements;
            var colors = PBR.Parameters["lightColors"].Elements;
            List<Vector3> lightpositions = new List<Vector3>();
-           lightpositions.Add(new Vector3(400, 30, -300));
+           lightpositions.Add(lightPosition);
+           lightpositions.Add(lightPosition);
+
+           /*lightpositions.Add(new Vector3(400, 30, -300));
            lightpositions.Add(new Vector3(400, 30, -600));
            lightpositions.Add(new Vector3 (400, 30, -900));
            lightpositions.Add(new Vector3(400, 30, -1200));
@@ -470,13 +478,13 @@ namespace TGC.MonoGame.TP
            lightpositions.Add(new Vector3(-1800, 5, -2000));
            lightpositions.Add(new Vector3(-2100, 5, -2000));
            lightpositions.Add(new Vector3(-2500, 5, -2000));
-           lightpositions.Add(new Vector3(-800,50, -900));
+           lightpositions.Add(new Vector3(-800,50, -900));*/
 
            for (var index = 0; index < lightpositions.Count; index++)
            {
 
                positions[index].SetValue(lightpositions[index]);
-               colors[index].SetValue(new Vector3(1000f, 1000f, 1000f));
+               colors[index].SetValue(new Vector3(1400f, 1400f, 1400f));
            }
             base.LoadContent();
         }
@@ -691,7 +699,7 @@ namespace TGC.MonoGame.TP
                 {
                     Dir = true;
                 }
-                if (ZBird < -2100f)
+                if (ZBird < -2500f)
                 {
                     Dir = false;
                 }
@@ -743,7 +751,6 @@ namespace TGC.MonoGame.TP
 
                 //Dejar siempre al final del update porque necesita la posicion ya calculada
                 SpherePosition = collisionObstacle(SphereCollide);
-                CubeMapCamera.Position = SpherePosition;
 
 
                 collisionCheckpoint(SphereCollide);
@@ -796,23 +803,13 @@ namespace TGC.MonoGame.TP
             // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
            
             View = Matrix.CreateLookAt(Camera.Position, Camera.TargetPosition, Vector3.UnitY);
-           /* GraphicsDevice.SetRenderTarget(RenderTarget);*/
             GraphicsDevice.Clear(Color.CornflowerBlue);
-            
-           
 
-        
-
-            
-            // Para dibujar le modelo necesitamos pasarle informacion que el efecto esta esperando.
-            
-         
-   
             BlinnEffect.Parameters["KAmbient"].SetValue(0.5f);
             BlinnEffect.Parameters["KDiffuse"].SetValue(0.5f);
             BlinnEffect.Parameters["KSpecular"].SetValue(0.4f);
             BlinnEffect.Parameters["shininess"].SetValue(0.4f);
-            BlinnEffect.Parameters["lightPosition"].SetValue(new Vector3(100f,50f,1600f));
+            BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
            
 
             BlinnEffect.Parameters["eyePosition"].SetValue(Camera.Position);
@@ -837,6 +834,10 @@ namespace TGC.MonoGame.TP
                 PBR.Parameters["cantidadEnviroment"].SetValue(0.8f);
 
             }
+            CubeMapCamera.Position = SpherePosition;
+
+            generateLevelDepth();
+           
             DrawWithEnviromentalMap();
            
 
@@ -869,7 +870,7 @@ namespace TGC.MonoGame.TP
                 BlinnEffect.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
                 BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);
 
-                DrawAllExceptSphere(CubeMapCamera.View, CubeMapCamera.Projection);
+                DrawAllExceptSphere(CubeMapCamera.View, CubeMapCamera.Projection,face);
             
              
             }
@@ -877,10 +878,10 @@ namespace TGC.MonoGame.TP
             GraphicsDevice.SetRenderTarget(null);
             GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
             BlinnEffect.Parameters["shadowMap"].SetValue(RenderTarget);
-            BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
+            /*BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
             BlinnEffect.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
-            BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);
-
+            BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);*/
+            
             DrawAllExceptSphere(Camera.View, Camera.Projection);
             
             PBR.Parameters["environmentMap"].SetValue(EnvironmentMapRenderTarget);
@@ -892,6 +893,7 @@ namespace TGC.MonoGame.TP
 
             if (!inMenu)
             {
+                
                 if (BoundingFrustum.Intersects(SphereCollide))
                 {
                     DrawSphere(SpherePosition, 0f, Pitch, Roll);
@@ -935,22 +937,22 @@ namespace TGC.MonoGame.TP
                     break;
             }
         }
-        private void DrawAllExceptSphere(Matrix view,Matrix projection)
+        private void DrawAllExceptSphere(Matrix view,Matrix projection,CubeMapFace face)
         {
             if (!inMenu)
             {
+                GraphicsDevice.SetRenderTarget(RenderTarget);
+               
+                generateLevelDepth();
+
+                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
+                GraphicsDevice.SetRenderTarget(EnvironmentMapRenderTarget,face);
                 var originalRasterizerState = GraphicsDevice.RasterizerState;
-                var rasterizerState = new RasterizerState();
+               var  rasterizerState = new RasterizerState();
                 rasterizerState.CullMode = CullMode.None;
                 Graphics.GraphicsDevice.RasterizerState = rasterizerState;
-
-                SkyBox.Draw(view,projection, Camera.Position);
+                SkyBox.Draw(Camera.View,Camera.View, Camera.Position);
                 GraphicsDevice.RasterizerState = originalRasterizerState;
-                GraphicsDevice.SetRenderTarget(RenderTarget);
-                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.Black, 1f, 0);
-                generateLevelDepth();
-                GraphicsDevice.SetRenderTarget(null);
-                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
 
                 generateLevel(view,projection);
                 if (Checkpoint1==0)
@@ -967,6 +969,7 @@ namespace TGC.MonoGame.TP
             }
             else
             {
+            
                 var originalRasterizerState = GraphicsDevice.RasterizerState;
                 var rasterizerState = new RasterizerState();
                 rasterizerState.CullMode = CullMode.None;
@@ -984,8 +987,61 @@ namespace TGC.MonoGame.TP
                 GraphicsDevice.RasterizerState = originalRasterizerState;
 
             }
+            
         }
+        private void DrawAllExceptSphere(Matrix view,Matrix projection)
+        {
+            if (!inMenu)
+            {
+                
 
+                GraphicsDevice.SetRenderTarget(RenderTarget);
+               
+                generateLevelDepth();
+                GraphicsDevice.SetRenderTarget(null);
+                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
+                var originalRasterizerState = GraphicsDevice.RasterizerState;
+                var rasterizerState = new RasterizerState();
+                rasterizerState.CullMode = CullMode.None;
+                Graphics.GraphicsDevice.RasterizerState = rasterizerState;
+
+                SkyBox.Draw(view,projection, Camera.Position);
+                GraphicsDevice.RasterizerState = originalRasterizerState;
+                generateLevel(view,projection);
+                if (Checkpoint1==0)
+                {
+                    DrawCylinder(Cylinder, Checkpoint1Position);
+                }
+
+                if (Checkpoint2==0)
+                {
+                    DrawCylinder(Cylinder, Checkpoint2Position);
+                }
+
+               
+            }
+            else
+            {
+            
+                var originalRasterizerState = GraphicsDevice.RasterizerState;
+                var rasterizerState = new RasterizerState();
+                rasterizerState.CullMode = CullMode.None;
+                Graphics.GraphicsDevice.RasterizerState = rasterizerState;
+                
+               
+                PlayMatrix = Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateScale(3f) * Matrix.CreateTranslation(new Vector3(2000f, 150f, 1500f));
+                DibujarConBlinnPhongYTextura(PlayMatrix,PlayModel,Color.LightBlue,MenuTexture2D,view,projection);
+                   
+                
+               
+                TextMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1975f, 450f, 1500f));
+                DibujarConBlinnPhong(TextMatrix,TextModel,Color.Green,view,projection);
+                
+                GraphicsDevice.RasterizerState = originalRasterizerState;
+
+            }
+            
+        }
         private void generateLevelDepth()
         {
             for (float i = 0; i < 40; i++)
@@ -1181,7 +1237,7 @@ namespace TGC.MonoGame.TP
 
             LampWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(700f, 6f, -1900f);
             dibujarDepth(LampWorld,LampModel,BlinnEffect);
-            
+            dibujarDepth(mundoCalculado,SphereModel,PBR);
     
         }
 
@@ -1198,22 +1254,7 @@ namespace TGC.MonoGame.TP
             effect.Parameters["Alfa"].SetValue(1f);
 
         }
-        private void DrawShadows()
-        {
-
-            
-        }
-
-        private void DibujarTodoDepth()
-        {
-            
-        }
-
-        private void DibujarTodoConSombras()
-        {
-        }
-
-        
+       
         /// <summary>
         ///     Libero los recursos que se cargaron en el juego.
         /// </summary>
@@ -1252,17 +1293,33 @@ namespace TGC.MonoGame.TP
                 // Set the render target as our shadow map, we are drawing the depth into this texture
                 
                 effect.CurrentTechnique = effect.Techniques["DepthPass"];
-                foreach (var mesh in model.Meshes)
-                {            
-                    Matrix meshMatrix = mesh.ParentBone.Transform;
-                    effect.Parameters["WorldViewProjection"].SetValue(meshMatrix*mundo * TargetLightCamera.View * TargetLightCamera.Projection);
-                    mesh.Draw();
+                if (effect == PBR)
+                {
+                    foreach (var mesh in model.Meshes)
+                    {            
+                        Matrix meshMatrix = mesh.ParentBone.Transform;
+                        effect.Parameters["matWorldViewProj"].SetValue(meshMatrix*mundo * TargetLightCamera.View * TargetLightCamera.Projection);
+                        mesh.Draw();
 
-                } 
+                    }   
+                }
+                else
+                {
+                    foreach (var mesh in model.Meshes)
+                    {            
+                        Matrix meshMatrix = mesh.ParentBone.Transform;
+                        effect.Parameters["WorldViewProjection"].SetValue(meshMatrix*mundo * TargetLightCamera.View * TargetLightCamera.Projection);
+                        mesh.Draw();
+
+                    }    
+                }
+                
         }
 
         private void DibujarPBR(Matrix mundo, Model model)
         {
+            PBR.CurrentTechnique = PBR.Techniques["PBR"];
+
             PBR.Parameters["albedoTexture"]?.SetValue(TexturaActual);
             PBR.Parameters["normalTexture"]?.SetValue(TexturaNormal);
             PBR.Parameters["metallicTexture"]?.SetValue(TexturaMetal);
@@ -1282,17 +1339,7 @@ namespace TGC.MonoGame.TP
             }
 
         }
-        private void DrawGeometry(GeometricPrimitive geometry, Vector3 position, float yaw, float pitch, float roll)
-        {
-            
-            var effect = geometry.Effect;
-
-            effect.World = Matrix.CreateFromYawPitchRoll(yaw, pitch, roll) * Matrix.CreateTranslation(position);
-            effect.View = Camera.View;
-            effect.Projection = Camera.Projection;
-
-            geometry.Draw(effect);
-        }
+       
     
         private void collisionCheckpoint(BoundingSphere esfera)
         {
@@ -1616,7 +1663,8 @@ namespace TGC.MonoGame.TP
             ActualColor = Color.Black;
             LampWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(700f, 6f, -1900f);
             DibujarConBlinnPhong(LampWorld,LampModel,ActualColor,view,projection);
-            
+            DibujarConBlinnPhong(Matrix.CreateTranslation(lightPosition),SunModel,Color.Yellow,view,projection);
+
     }
 
     private void moverCamaraMouse()

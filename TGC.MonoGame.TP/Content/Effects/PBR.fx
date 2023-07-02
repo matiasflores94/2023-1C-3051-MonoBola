@@ -82,10 +82,10 @@ struct Light
 	float3 Color;
 } ;
 
-#define LIGHT_COUNT 16
+#define LIGHT_COUNT 2
 
-float3 lightPositions[16];
-float3 lightColors[16];
+float3 lightPositions[2];
+float3 lightColors[2];
 
 float3 eyePosition; //Posicion de la camara
 texture environmentMap;
@@ -226,6 +226,9 @@ float cantidadEnviroment;
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
 		//CALCULO SHADOWS
+	
+	
+	
 		float3 lightSpacePosition = input.LightSpacePosition.xyz / input.LightSpacePosition.w;
     	float2 shadowMapTextureCoordinates = 0.5 * lightSpacePosition.xy + float2(0.5, 0.5);
     	shadowMapTextureCoordinates.y = 1.0f - shadowMapTextureCoordinates.y;
@@ -233,9 +236,14 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     	float3 normals = normalize(input.WorldNormal.rgb);
     	float3 lightDirection = normalize(lightPosition - input.WorldPosition.xyz);
     	float inclinationBias = max(modulatedEpsilon * (1.0 - dot(normals, lightDirection)), maxEpsilon);
+	    float shadowMapDepth = tex2D(shadowMapSampler, shadowMapTextureCoordinates).r + inclinationBias;
+        	
+        	// Compare the shadowmap with the REAL depth of this fragment
+        	// in light space
 	
 		// Sample and smooth the shadowmap
 		// Also perform the comparison inside the loop and average the result
+    	
     	float notInShadow = 0.0;
     	float2 texelSize = 1.0 / shadowMapSize;
     	for (int x = -1; x <= 1; x++)

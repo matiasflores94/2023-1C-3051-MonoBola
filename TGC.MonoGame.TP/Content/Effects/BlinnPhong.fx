@@ -131,7 +131,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     
     // Final calculation
     float4 finalColor = float4(saturate(ambientColor * KAmbient + diffuseLight) * texelColor.rgb + specularLight, texelColor.a);
-    finalColor.rgb *= 0.5 + 0.5 * notInShadow;
+    finalColor.rgb *= 0.7 + 0.3 * notInShadow;
     return finalColor;
 }
 
