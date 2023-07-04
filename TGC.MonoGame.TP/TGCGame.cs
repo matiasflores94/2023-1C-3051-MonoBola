@@ -1601,7 +1601,7 @@ namespace TGC.MonoGame.TP
              {
                 
                     GrassWorld=Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f - 6000f, 0, j * -200f);
-                    DibujarConBlinnPhongYTextura(GrassWorld,GrassModel,ActualColor,GrassTexture,view,projection);
+                    DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor,view,projection);
                 
              }
             }
