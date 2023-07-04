@@ -321,7 +321,7 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     float3 reflectionColor = texCUBE(environmentMapSampler, reflection).rgb;
     float fresnel = saturate((1.0 - dot(normal, view))); 
     float4 pbrenviroment =  float4(lerp(color, reflectionColor, fresnel*cantidadEnviroment), 1);
-    pbrenviroment.rgb *= 0.5 + 0.5 * notInShadow;
+    pbrenviroment.rgb *= 1.0 + 0.7  * notInShadow;
     return pbrenviroment;
 }
 

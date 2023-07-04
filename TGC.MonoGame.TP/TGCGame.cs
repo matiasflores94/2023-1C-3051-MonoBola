@@ -111,7 +111,9 @@ namespace TGC.MonoGame.TP
         private Matrix BenchWorld { get; set; }
         private Model Tree2Model { get; set; }
         private Matrix Tree2World { get; set; }
-        private Model Tree1Model { get; set; }
+        private Model Tree1Model { get; set; } 
+        private Model InstruccionModel { get; set; }
+
         private Matrix Tree1World { get; set; }
         private Model BridgeModel { get; set; }
         private Matrix BridgeWorld { get; set; }
@@ -121,6 +123,9 @@ namespace TGC.MonoGame.TP
         private Matrix GrassWorld { get; set; }
         private Model LampModel { get; set; }
         private Matrix LampWorld { get; set; }
+        public Model pathTextModel { get; set; }
+        public Model checkpointTextModel { get; set; }
+        public Model moveTextModel { get; set; }
 
         private Model StarModel { get; set; }
         
@@ -215,7 +220,11 @@ namespace TGC.MonoGame.TP
         private Texture2D GomaAO { get; set; }
         private Texture2D GomaMetal { get; set; }
 
-        
+        private Matrix InstruccionMatrix { get; set; }
+        private Matrix MoveMatrix { get; set; }
+        private Matrix PathMatrix { get; set; }
+        private Matrix CheckpointMatrix { get; set; }
+
        // private Vector3 light  = 
         private TextureCube SkyBoxTexture { get; set; }
         private Model SkyBoxModel { get; set; }
@@ -236,7 +245,7 @@ namespace TGC.MonoGame.TP
         /// </summary>
         private Vector3 BridgePosition;
 
-        private Vector3 lightPosition = new Vector3(100f,1000f,-1600f);
+        private Vector3 lightPosition = new Vector3(100f,400f,-1600f);
         protected override void Initialize()
         {
           
@@ -286,6 +295,11 @@ namespace TGC.MonoGame.TP
             SlideWorld = Matrix.Identity;
             LampWorld = Matrix.Identity;
             PlayMatrix = Matrix.Identity;
+            InstruccionMatrix = Matrix.Identity;
+            PathMatrix = Matrix.Identity;
+            MoveMatrix = Matrix.Identity;
+            CheckpointMatrix = Matrix.Identity;
+
             FootWorld=Matrix.CreateScale(30f)* Matrix.CreateTranslation(new Vector3(-3000,350,-2000));
             BirdPosition = new Vector3(-1000f, 150f, -1500f);
             Checkpoint1 = 0;
@@ -302,11 +316,13 @@ namespace TGC.MonoGame.TP
             Pared2 = new OrientedBoundingBox(new Vector3(520,500,-950), new Vector3(1,500,1200));
             Pared3 = new OrientedBoundingBox(new Vector3(-1445,500,-1760), new Vector3(1740,2000,1));
             Pared4 = new OrientedBoundingBox(new Vector3(-1327.5f,500,-2240), new Vector3(1900,2000,1));
+            Pared5 = new OrientedBoundingBox(new Vector3(-4200, 12f, -2000f), new Vector3(400,500,1));
+
             AguaCollide = new OrientedBoundingBox(new Vector3(500,0,-1150), new Vector3(500,7,300));
             FootOBB = new OrientedBoundingBox(new Vector3(-3000,350,-2000), new Vector3(50,40,200));
 
             ArenaCollide = new OrientedBoundingBox(new Vector3(-940, 4, -2550), new Vector3(500, 1 ,800));
-            SlideCollide = new OrientedBoundingBox(new Vector3(-450, 20, -2000), new Vector3(80, 190 ,100));
+            SlideCollide = new OrientedBoundingBox(new Vector3(-450, 20, -2000), new Vector3(30, 40 ,200));
             
             SlideCollide.Rotate(Matrix.CreateRotationX(MathHelper.PiOver2));
             StarCollide = new BoundingSphere(new Vector3(400f, 5f, -100f), 18f);
@@ -342,6 +358,7 @@ namespace TGC.MonoGame.TP
             base.Initialize();
         }
 
+        public OrientedBoundingBox Pared5 { get; set; }
 
 
         /// <summary>
@@ -382,6 +399,11 @@ namespace TGC.MonoGame.TP
             TextModel = Content.Load<Model>(ContentFolder3D + "play/text3d");
             SunModel = Content.Load<Model>(ContentFolder3D + "sun/sun");
             FootModel = Content.Load<Model>(ContentFolder3D + "foot/foot");
+            pathTextModel = Content.Load<Model>(ContentFolder3D + "pathtext/pathtext");
+            moveTextModel = Content.Load<Model>(ContentFolder3D + "movertext/movertext");
+            checkpointTextModel = Content.Load<Model>(ContentFolder3D + "checkpointtext/checkpointtext");
+            InstruccionModel = Content.Load<Model>(ContentFolder3D + "instrucciones/instrucciones");
+            VolverModel = Content.Load<Model>(ContentFolder3D + "volver/volver");
 
             SkyBoxTexture = Content.Load<TextureCube>(ContentFolderTextures + "skybox");
 
@@ -395,17 +417,21 @@ namespace TGC.MonoGame.TP
             RockTexture = Content.Load<Texture2D>(ContentFolderTextures + "rock_diffuse");
             RubberTexture = Content.Load<Texture2D>(ContentFolderTextures + "goma_diffuse");
             MetalTexture =  Content.Load<Texture2D>(ContentFolderTextures + "metal_diffuse");
-            MetalRoughness = Content.Load<Texture2D>(ContentFolderTextures + "metal_ao");
-            MetalNormal = Content.Load<Texture2D>(ContentFolderTextures + "metal_metal");
-            RockNormal = Content.Load<Texture2D>(ContentFolderTextures + "rock_ao");
-            RockRoughness = Content.Load<Texture2D>(ContentFolderTextures + "rock_metal");
-            GomaNormal = Content.Load<Texture2D>(ContentFolderTextures + "goma_ao");
-            GomaNormal = Content.Load<Texture2D>(ContentFolderTextures + "goma_metal");
+            MetalAO = Content.Load<Texture2D>(ContentFolderTextures + "metal_ao");
+            MetalMetal = Content.Load<Texture2D>(ContentFolderTextures + "metal_metal");
+            RockAO = Content.Load<Texture2D>(ContentFolderTextures + "rock_ao");
+            RockMetal = Content.Load<Texture2D>(ContentFolderTextures + "rock_metal");
+            GomaAO = Content.Load<Texture2D>(ContentFolderTextures + "goma_ao");
+            GomaMetal = Content.Load<Texture2D>(ContentFolderTextures + "goma_metal");
+
+           // PathTexture = Content.Load<Texture2D>(ContentFolder3D + "path/cobblestone lowpoly_diffuse");
+           // GrassTexture = Content.Load<Texture2D>(ContentFolder3D + "grass/grass2");
 
             TexturaActual = RockTexture;
             TexturaNormal = RockNormal;
             TexturaRoughness = RockRoughness;
-            
+            TexturaAO = RockAO;
+            TexturaMetal = RockMetal;
                 // Cargo un efecto basico propio declarado en el Content pipeline.
             // En el juego no pueden usar BasicEffect de MG, deben usar siempre efectos propios.
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
@@ -432,6 +458,9 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(Tree1Model, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(Tree2Model, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(SunModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(moveTextModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(checkpointTextModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(pathTextModel, BlinnEffect);
 
             FuncionesGenerales.loadEffectOnMesh(DogModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(StarModel, BlinnEffect);
@@ -446,6 +475,9 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(BallModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(SphereModel,PBR);
             FuncionesGenerales.loadEffectOnMesh(FootModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(InstruccionModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(VolverModel, BlinnEffect);
+
 
             //BridgeModel.Meshes.Get.GetVerticesAndIndicesFromModel.
 
@@ -496,10 +528,13 @@ namespace TGC.MonoGame.TP
             base.LoadContent();
         }
 
+        public Texture2D GrassTexture { get; set; }
+
+        public Texture2D PathTexture { get; set; }
 
 
         private Matrix View { get; set; }
-
+        private bool inInstrucciones;
         private void UpdateCamera() //Sacado de Samples.ThirdPersonPlatformer
         {
             // Create a position that orbits the Robot by its direction (Rotation)
@@ -521,7 +556,12 @@ namespace TGC.MonoGame.TP
                 {
                     Camera.Position = new Vector3(2000f, 650f, 1000f);
                     Camera.TargetPosition = new Vector3(2000f, 400f, 1500f);
+                    if (inInstrucciones)
+                    {
+                        Camera.Position = new Vector3(2000f, 1650f, 1000f);
+                        Camera.TargetPosition = new Vector3(2000f, 1400f, 1500f);
 
+                    }
                 }
                 else
                 {
@@ -530,6 +570,7 @@ namespace TGC.MonoGame.TP
 
 
                 }
+                
 
                 // Set the Target as the Robot, the Camera needs to be always pointing to it
            
@@ -555,11 +596,29 @@ namespace TGC.MonoGame.TP
         private bool Dir = true ;
         private bool DirAnterior;
         private bool Bajando= false;
-
+        private float materialPeso = 1f;
         private float footCeiling = 340f;
+        private float velocidadPeso = 1f;
 
         protected override void Update(GameTime gameTime)
         {
+            if (TexturaActual == RockTexture)
+            {
+                materialPeso = 2.3f;
+                velocidadPeso = 0.5f;
+            }
+            if (TexturaActual == MetalTexture)
+            {
+                materialPeso = 1.7f;
+                velocidadPeso = 1.9f;
+
+            }
+
+            if (TexturaActual == RubberTexture)
+            {
+                velocidadPeso = 1.3f;
+                materialPeso = 1f;
+            }
             
             elapsedTime = Convert.ToSingle(gameTime.ElapsedGameTime.TotalSeconds);
             if (tiempoStar > 0f)
@@ -611,10 +670,11 @@ namespace TGC.MonoGame.TP
                     TexturaActual = MetalTexture;
                     TexturaNormal = MetalNormal;
                     TexturaRoughness = MetalRoughness;
-                    TexturaMetal =GomaMetal;
-                    TexturaAO = GomaAO;
+                    TexturaMetal =MetalMetal;
+                    TexturaAO = MetalAO;
 
                 }
+                
                 //Movimiento del Pie
                 var FootPosition = FootWorld.Translation;
                 if (FootPosition.Y > footCeiling)
@@ -679,7 +739,7 @@ namespace TGC.MonoGame.TP
                     {
                         var HorizontalVelocity = -Velocity;
                         HorizontalVelocity.Y = 0f;
-                        Acceleration = -Velocity * FRICTION;
+                        Acceleration = -Velocity * velocidadPeso* FRICTION;
                     }
 
 
@@ -692,7 +752,7 @@ namespace TGC.MonoGame.TP
 
                 if (!BridgeCollision.Intersects(SphereCollide) || !SlideCollide.Intersects(SphereCollide))
                 {
-                    Acceleration.Y = GRAVITY;
+                    Acceleration.Y = GRAVITY*materialPeso;
                 }
 
                 if (Keyboard.GetState().IsKeyDown(Keys.Space) && isOnGround)
@@ -793,9 +853,19 @@ namespace TGC.MonoGame.TP
             {
 
                 
-                if (Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>850f && Mouse.GetState().Position.X<1200f ) && (Mouse.GetState().Position.Y>300f && Mouse.GetState().Position.Y<600f ))
+                if (Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>850f && Mouse.GetState().Position.X<1200f ) && (Mouse.GetState().Position.Y>400f && Mouse.GetState().Position.Y<500f ))
+                {
+                    inInstrucciones = true;
+                }
+                if (inInstrucciones==false &&Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>850f && Mouse.GetState().Position.X<1200f ) && (Mouse.GetState().Position.Y>250f && Mouse.GetState().Position.Y<350f ))
                 {
                     inMenu = false;
+                    
+                }
+
+                if (inInstrucciones && Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X > 850f && Mouse.GetState().Position.X < 1200f) && (Mouse.GetState().Position.Y > 650f && Mouse.GetState().Position.Y < 750f))
+                {
+                    inInstrucciones = false;
                 }
             }
             if (Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -814,10 +884,15 @@ namespace TGC.MonoGame.TP
 
         private bool isOnTrack()
         {
-            if (Pared1.Intersects(SphereCollide) || Pared2.Intersects(SphereCollide) || Pared3.Intersects(SphereCollide) || Pared4.Intersects(SphereCollide) || AguaCollide.Intersects(SphereCollide) || ArenaCollide.Intersects(SphereCollide)){
+            if (Pared1.Intersects(SphereCollide) || Pared2.Intersects(SphereCollide) || Pared3.Intersects(SphereCollide) ||  Pared4.Intersects(SphereCollide) || AguaCollide.Intersects(SphereCollide) || ArenaCollide.Intersects(SphereCollide)){
+                
                 return false;
             }
+            if (Pared5.Intersects(SphereCollide)&&Checkpoint2==0)
+            {
+                return false;
 
+            }
             return true;
         }
 
@@ -994,7 +1069,7 @@ namespace TGC.MonoGame.TP
                 {
                     DrawCylinder(Cylinder, Checkpoint2Position);
                 }
-
+               
                
             }
             else
@@ -1005,20 +1080,22 @@ namespace TGC.MonoGame.TP
                 rasterizerState.CullMode = CullMode.None;
                 Graphics.GraphicsDevice.RasterizerState = rasterizerState;
                 
-               
                 PlayMatrix = Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateScale(3f) * Matrix.CreateTranslation(new Vector3(2000f, 150f, 1500f));
                 DibujarConBlinnPhongYTextura(PlayMatrix,PlayModel,Color.LightBlue,MenuTexture2D,view,projection);
-                   
+                
                 
                
                 TextMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1975f, 450f, 1500f));
                 DibujarConBlinnPhong(TextMatrix,TextModel,Color.Green,view,projection);
-                
+               
+
                 GraphicsDevice.RasterizerState = originalRasterizerState;
 
             }
             
         }
+
+
         private void DrawAllExceptSphere(Matrix view,Matrix projection)
         {
             if (!inMenu)
@@ -1062,16 +1139,41 @@ namespace TGC.MonoGame.TP
                 PlayMatrix = Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateScale(3f) * Matrix.CreateTranslation(new Vector3(2000f, 150f, 1500f));
                 DibujarConBlinnPhongYTextura(PlayMatrix,PlayModel,Color.LightBlue,MenuTexture2D,view,projection);
                    
-                
+                //aaaa
                
-                TextMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1975f, 450f, 1500f));
+                TextMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1975f, 500f, 1500f));
                 DibujarConBlinnPhong(TextMatrix,TextModel,Color.Green,view,projection);
-                
+                InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(new Vector3(1982, 450f, 1450f));
+                DibujarConBlinnPhong(InstruccionMatrix,InstruccionModel,Color.Green,view,projection);
+                if (inInstrucciones)
+                {
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(new Vector3(1982, 1550f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,moveTextModel,Color.Green,view,projection);
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(new Vector3(1982, 1500f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,pathTextModel,Color.Green,view,projection);
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(new Vector3(1982, 1450f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,checkpointTextModel,Color.Green,view,projection);
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(new Vector3(1792, 1450f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,ArcoModel,Color.White,view,projection);
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.3f) * Matrix.CreateTranslation(new Vector3(1772, 1500f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,BallModel,Color.White,view,projection);
+                    InstruccionMatrix =  Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(1.3f) * Matrix.CreateTranslation(new Vector3(1752, 1500f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,FootModel,Color.Pink,view,projection);
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(1.3f) * Matrix.CreateTranslation(new Vector3(1762, 1520f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,BirdModel,Color.Gray,view,projection);
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1982, 1350f, 1450f));
+                    DibujarConBlinnPhong(InstruccionMatrix,VolverModel,Color.Green,view,projection);
+
+
+                }
                 GraphicsDevice.RasterizerState = originalRasterizerState;
 
             }
             
         }
+
+        public Model VolverModel { get; set; }
+
         private void generateLevelDepth()
         {
             for (float i = 0; i < 40; i++)
@@ -1499,7 +1601,7 @@ namespace TGC.MonoGame.TP
              {
                 
                     GrassWorld=Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f - 6000f, 0, j * -200f);
-                    DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor,view,projection);
+                    DibujarConBlinnPhongYTextura(GrassWorld,GrassModel,ActualColor,GrassTexture,view,projection);
                 
              }
             }
@@ -1511,7 +1613,7 @@ namespace TGC.MonoGame.TP
             DibujarConBlinnPhong(BikeWorld,BikeModel,ActualColor,view,projection);
             
 
-            for (float i = 0; i < 10; i++)
+            for (float i = 0; i < 15; i++)
             {
                 
                     PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i*200f-1500, 5f, - 2000f);
@@ -1574,7 +1676,7 @@ namespace TGC.MonoGame.TP
                 DibujarConBlinnPhong(BirdWorld,BirdModel,ActualColor,view,projection);
             
             
-                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-3200, 12f, -2000f);
+                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-4200, 12f, -2000f);
                 DibujarConBlinnPhong(ArcoWorld,ArcoModel,ActualColor,view,projection);
             
 
@@ -1696,7 +1798,7 @@ namespace TGC.MonoGame.TP
             ActualColor = Color.Black;
             LampWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(700f, 6f, -1900f);
             DibujarConBlinnPhong(LampWorld,LampModel,ActualColor,view,projection);
-            DibujarConBlinnPhong(Matrix.CreateTranslation(lightPosition),SunModel,Color.Yellow,view,projection);
+            DibujarConBlinnPhong(Matrix.CreateScale(0.5f)*Matrix.CreateTranslation(lightPosition),SunModel,Color.Yellow,view,projection);
 
     }
 
