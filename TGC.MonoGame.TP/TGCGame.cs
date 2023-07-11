@@ -93,6 +93,7 @@ namespace TGC.MonoGame.TP
 
         private Effect MetalEffect { get; set; }
         public Model FootModel { get; set; }
+        public Matrix RatWorld { get; set; }
 
         private Model SphereModel { get; set; }
         private Model BodyModel { get; set; }
@@ -126,6 +127,7 @@ namespace TGC.MonoGame.TP
         public Model pathTextModel { get; set; }
         public Model checkpointTextModel { get; set; }
         public Model moveTextModel { get; set; }
+        public Model RatModel { get; set; }
 
         private Model StarModel { get; set; }
         
@@ -133,6 +135,7 @@ namespace TGC.MonoGame.TP
         private Model PlayModel { get; set; }
 
         private Matrix BirdWorld { get; set; }
+        private Vector3 RatPosition { get; set; }
 
         private Matrix StarWorld { get; set; }
         private Matrix FloorWorld { get; set; }
@@ -170,6 +173,8 @@ namespace TGC.MonoGame.TP
         private OrientedBoundingBox Pared1 { get; set; }
         private OrientedBoundingBox AguaCollide { get; set; }
         private OrientedBoundingBox FootOBB { get; set; }
+        private OrientedBoundingBox RatOBB { get; set; }
+
 
         private OrientedBoundingBox Pared2 { get; set; }
         private OrientedBoundingBox Pared3 { get; set; }
@@ -185,7 +190,7 @@ namespace TGC.MonoGame.TP
         private Boolean Finsh{ get; set; }
         private Vector3 BirdPosition { get; set; }
         private BoundingSphere BridgeCollision { get; set; }
-        private BoundingSphere BDCollide { get; set; }
+        private BoundingSphere BirdCollide { get; set; }
 
         private Vector3 SphereFrontDirection { get; set; }
         Matrix mundoCalculado{ get; set; }
@@ -213,6 +218,8 @@ namespace TGC.MonoGame.TP
         private Texture2D TexturaAO { get; set; }
 
         private Texture2D TexturaRoughness { get; set; }
+        private BoundingSphere RangoRaton { get; set; }
+
         private Texture2D RockAO { get; set; }
         private Texture2D RockMetal { get; set; }
         private Texture2D MetalMetal { get; set; }
@@ -225,13 +232,14 @@ namespace TGC.MonoGame.TP
         private Matrix PathMatrix { get; set; }
         private Matrix CheckpointMatrix { get; set; }
 
-       // private Vector3 light  = 
         private TextureCube SkyBoxTexture { get; set; }
         private Model SkyBoxModel { get; set; }
         private Model TextModel { get; set; }
 
         private Effect SkyBoxEffect { get; set; }
         private Effect PBR { get; set; }
+        private Effect PBRMalo { get; set; }
+        private Effect ActualPBR { get; set; }
 
         private SkyBox SkyBox { get; set; }
         public TargetCamera TargetLightCamera { get; set; }
@@ -249,12 +257,7 @@ namespace TGC.MonoGame.TP
         protected override void Initialize()
         {
           
-            // Apago el backface culling.
-            // Esto se hace por un problema en el diseno del modelo del logo de la materia.
-            // Una vez que empiecen su juego, esto no es mas necesario y lo pueden sacar.
-            /*Graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width - 100;
-            Graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height - 100;
-            Graphics.ApplyChanges();*/
+          
 
             var rasterizerState = new RasterizerState();
             rasterizerState.CullMode = CullMode.None;
@@ -270,7 +273,8 @@ namespace TGC.MonoGame.TP
             //Creacion de Esfera
             Sphere = new SpherePrimitive(GraphicsDevice, DIAMETER, 16, Color.Gold);
             Cylinder = new CylinderPrimitive(GraphicsDevice, CheckPointHeight, CheckPointRadius, 32);
-
+            RatPosition = new Vector3(-5000f, 0f, -2000f);
+            RatWorld = Matrix.CreateTranslation(RatPosition);
             // Configuramos nuestras matrices de la escena.
             var Alto = GraphicsDevice.Viewport.Bounds.Height;
             var Ancho = GraphicsDevice.Viewport.Bounds.Width;
@@ -310,21 +314,21 @@ namespace TGC.MonoGame.TP
             Checkpoint2Position = new Vector3(-1680, 0, -2000);
             CheckPoint1Collide = new BoundingCylinder(Checkpoint1Position,  CheckPointRadius,CheckPointHeight/2);
             CheckPoint2Collide = new BoundingCylinder(Checkpoint2Position,CheckPointRadius,CheckPointHeight/2);
-            FinishPosition = new Vector3(-3200, 12f, -2000f);
-            FinishCollide = new OrientedBoundingBox(FinishPosition, new Vector3(200,200,200));
+            FinishPosition = new Vector3(-6200, 12f, -2000f);
+            FinishCollide = new OrientedBoundingBox(FinishPosition, new Vector3(200,200,1));
             Pared1 = new OrientedBoundingBox(new Vector3(280,500,-750), new Vector3(1,500,1000));
             Pared2 = new OrientedBoundingBox(new Vector3(520,500,-950), new Vector3(1,500,1200));
-            Pared3 = new OrientedBoundingBox(new Vector3(-1445,500,-1760), new Vector3(1740,2000,1));
-            Pared4 = new OrientedBoundingBox(new Vector3(-1327.5f,500,-2240), new Vector3(1900,2000,1));
-            Pared5 = new OrientedBoundingBox(new Vector3(-4200, 12f, -2000f), new Vector3(400,500,1));
+            Pared3 = new OrientedBoundingBox(new Vector3(-2045,500,-1760), new Vector3(2340,2000,1));
+            Pared4 = new OrientedBoundingBox(new Vector3(-1827.5f,500,-2240), new Vector3(2400,2000,1));
+            Pared5 = new OrientedBoundingBox(new Vector3(-21321321200, 12f, -2000f), new Vector3(400,500,1));
+            RatOBB = new OrientedBoundingBox(new Vector3(-2000, 0f, -2000f), new Vector3(50,20,80));
 
             AguaCollide = new OrientedBoundingBox(new Vector3(500,0,-1150), new Vector3(500,7,300));
-            FootOBB = new OrientedBoundingBox(new Vector3(-3000,350,-2000), new Vector3(50,40,200));
 
             ArenaCollide = new OrientedBoundingBox(new Vector3(-940, 4, -2550), new Vector3(500, 1 ,800));
-            SlideCollide = new OrientedBoundingBox(new Vector3(-450, 20, -2000), new Vector3(30, 40 ,200));
+            SlideCollide = new OrientedBoundingBox(new Vector3(-450, 20, -2000), new Vector3(200, 50 ,200));
             
-            SlideCollide.Rotate(Matrix.CreateRotationX(MathHelper.PiOver2));
+            SlideCollide.Rotate(Matrix.CreateRotationZ(MathHelper.PiOver4));
             StarCollide = new BoundingSphere(new Vector3(400f, 5f, -100f), 18f);
             SphereCollide = new BoundingSphere(SpherePosition, DIAMETER/2);
             BallCollide1 = new BoundingSphere(new Vector3(400f, 12f, 0f + -200f), (DIAMETER/2)-1);
@@ -332,6 +336,9 @@ namespace TGC.MonoGame.TP
             BallCollide3 = new BoundingSphere(new Vector3(450f, 12f, 0f + -600f), (DIAMETER/2)-1);
             BridgePosition = new Vector3(400f, -230f, -1300f);
             BridgeCollision = new BoundingSphere(BridgePosition, 320f);
+            RangoRaton = new BoundingSphere(new Vector3(-4500, 0f, -2000f), 1000f);
+
+            BirdCollide = new BoundingSphere(BirdPosition, 50f);
             var size = GraphicsDevice.Viewport.Bounds.Size;
             size.X /= 2;
             size.Y /= 2;
@@ -404,6 +411,9 @@ namespace TGC.MonoGame.TP
             checkpointTextModel = Content.Load<Model>(ContentFolder3D + "checkpointtext/checkpointtext");
             InstruccionModel = Content.Load<Model>(ContentFolder3D + "instrucciones/instrucciones");
             VolverModel = Content.Load<Model>(ContentFolder3D + "volver/volver");
+            RatModel = Content.Load<Model>(ContentFolder3D + "rat/rat");
+            AltoModel = Content.Load<Model>(ContentFolder3D + "quality/alto");
+            BajoModel = Content.Load<Model>(ContentFolder3D + "quality/bajo");
 
             SkyBoxTexture = Content.Load<TextureCube>(ContentFolderTextures + "skybox");
 
@@ -437,6 +447,7 @@ namespace TGC.MonoGame.TP
             Effect = Content.Load<Effect>(ContentFolderEffects + "BasicShader");
             BlinnEffect = Content.Load<Effect>(ContentFolderEffects + "BlinnPhong");
             PBR = Content.Load<Effect>(ContentFolderEffects + "PBR");
+            
             ShadowMap = Content.Load<Effect>(ContentFolderEffects + "ShadowMap");
 
            
@@ -461,6 +472,7 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(moveTextModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(checkpointTextModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(pathTextModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(RatModel, BlinnEffect);
 
             FuncionesGenerales.loadEffectOnMesh(DogModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(StarModel, BlinnEffect);
@@ -476,13 +488,15 @@ namespace TGC.MonoGame.TP
             FuncionesGenerales.loadEffectOnMesh(SphereModel,PBR);
             FuncionesGenerales.loadEffectOnMesh(FootModel, BlinnEffect);
             FuncionesGenerales.loadEffectOnMesh(InstruccionModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(AltoModel, BlinnEffect);
+            FuncionesGenerales.loadEffectOnMesh(BajoModel, BlinnEffect);
+
             FuncionesGenerales.loadEffectOnMesh(VolverModel, BlinnEffect);
 
 
             //BridgeModel.Meshes.Get.GetVerticesAndIndicesFromModel.
 
             //ConvexHullHelper.CreateShape(BridgeModel.Bones., ,);
-            
             //TexturaActual = RockTexture;
             BlinnEffect.Parameters["baseTexture"].SetValue(RockTexture);
             Music = Content.Load<SoundEffect>(ContentFolderMusic + "ost");
@@ -501,24 +515,7 @@ namespace TGC.MonoGame.TP
            List<Vector3> lightpositions = new List<Vector3>();
            lightpositions.Add(lightPosition);
            lightpositions.Add(lightPosition);
-
-           /*lightpositions.Add(new Vector3(400, 30, -300));
-           lightpositions.Add(new Vector3(400, 30, -600));
-           lightpositions.Add(new Vector3 (400, 30, -900));
-           lightpositions.Add(new Vector3(400, 30, -1200));
-           lightpositions.Add(new Vector3(400, 5, -1500));
-           lightpositions.Add(new Vector3(400, 5, -1800));
-           lightpositions.Add(new Vector3(100, 5, -2000));
-           lightpositions.Add(new Vector3(-200, 5, -2000));
-           lightpositions.Add(new Vector3(-500, 5, -2000));
-           lightpositions.Add(new Vector3(-800,5, -2000));
-           lightpositions.Add(new Vector3(-1100, 5, -2000));
-           lightpositions.Add(new Vector3(-1500, 5, -2000));
-           lightpositions.Add(new Vector3(-1800, 5, -2000));
-           lightpositions.Add(new Vector3(-2100, 5, -2000));
-           lightpositions.Add(new Vector3(-2500, 5, -2000));
-           lightpositions.Add(new Vector3(-800,50, -900));*/
-
+           
            for (var index = 0; index < lightpositions.Count; index++)
            {
 
@@ -527,6 +524,10 @@ namespace TGC.MonoGame.TP
            }
             base.LoadContent();
         }
+
+        public Model BajoModel { get; set; }
+
+        public Model AltoModel { get; set; }
 
         public Texture2D GrassTexture { get; set; }
 
@@ -599,9 +600,10 @@ namespace TGC.MonoGame.TP
         private float materialPeso = 1f;
         private float footCeiling = 340f;
         private float velocidadPeso = 1f;
-
+        public bool calidad=true;
         protected override void Update(GameTime gameTime)
         {
+            
             if (TexturaActual == RockTexture)
             {
                 materialPeso = 2.3f;
@@ -689,18 +691,17 @@ namespace TGC.MonoGame.TP
                 if (Bajando)
                 {
                     FootWorld *= Matrix.CreateTranslation(0f, -350f * elapsedTime, 0f);
-                    FootOBB.Center = FootWorld.Translation;
                 }
                 else
                 {
                     FootWorld *= Matrix.CreateTranslation(0f, 190f * elapsedTime, 0f);
-                    FootOBB.Center = FootWorld.Translation;
                 }
-                // Capturar Input teclado
-               
-            
 
-                isOnGround = MathF.Abs(SpherePosition.Y) <= 10f /*float.Epsilon*/;
+                FootOBB = new OrientedBoundingBox(FootWorld.Translation, new Vector3(50, 30, 50));
+
+
+
+                isOnGround = MathF.Abs(SpherePosition.Y) <= 10f;
                 if (BridgeCollision.Intersects(SphereCollide) || SlideCollide.Intersects(SphereCollide))
                 {
                     isOnGround = true;
@@ -711,16 +712,14 @@ namespace TGC.MonoGame.TP
                 {
                     if (Keyboard.GetState().IsKeyDown(Keys.A))
                     {
-                        /*Acceleration = Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
-                        Roll += elapsedTime * currentSpeed / 2;*/
+                       
                         SpherePosition -= Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
                         Roll += elapsedTime * currentSpeed / 2;
                     }
 
                     if (Keyboard.GetState().IsKeyDown(Keys.D))
                     {
-                        /*Acceleration = -Vector3.Cross(SphereFrontDirection, Vector3.Up) * HORIZONTAL_ACC;
-                        Roll -= elapsedTime * currentSpeed / 2;*/
+                       
                         SpherePosition += Vector3.Cross(SphereFrontDirection, Vector3.Up) * currentSpeed * elapsedTime;
                         Roll -= elapsedTime * currentSpeed / 2;
                     }
@@ -800,7 +799,7 @@ namespace TGC.MonoGame.TP
                 if (Dir)
                 {
               
-                    BirdPosition += new Vector3(0f,0f ,-2500f*elapsedTime);
+                    BirdPosition += new Vector3(0f,0f ,-250*elapsedTime);
                 }
                 else
                 {
@@ -837,13 +836,28 @@ namespace TGC.MonoGame.TP
                     SpherePosition = SpherePosition + new Vector3(0, DIAMETER / 2, 0);
                 }
 
+                if (RangoRaton.Contains(SphereCollide).Equals(ContainmentType.Contains))
+                {
+                   
+                    var RatTranslation = SpherePosition - RatPosition;
+                    var producto =Vector3.Dot(SpherePosition, RatPosition);
+                    var angulo = MathF.Acos((producto) / (SpherePosition.Length() * RatPosition.Length()));
+                   // angulo = angulo * 360f / (MathF.PI*2f);
+                    if (SpherePosition.X < RatPosition.X) angulo = 360 - angulo;
+                    RatTranslation.Y = 0f;
+                    RatTranslation.Normalize();
+                    RatTranslation *= 200f * elapsedTime;
+                    RatPosition += RatTranslation;
+                    RatWorld = Matrix.CreateRotationY(angulo)*Matrix.CreateTranslation(RatPosition);
+                    RatOBB = new OrientedBoundingBox(RatPosition, new Vector3(50, 30, 50));
+                }
+
+                collisionCheckpoint(SphereCollide);
                 SphereCollide = new BoundingSphere(SpherePosition, DIAMETER / 2);
 
                 //Dejar siempre al final del update porque necesita la posicion ya calculada
                 SpherePosition = collisionObstacle(SphereCollide);
-
-
-                collisionCheckpoint(SphereCollide);
+                
                 alive = isOnTrack();
                 if (!alive)
                 {
@@ -852,18 +866,23 @@ namespace TGC.MonoGame.TP
             }else
             {
 
-                
-                if (Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>850f && Mouse.GetState().Position.X<1200f ) && (Mouse.GetState().Position.Y>400f && Mouse.GetState().Position.Y<500f ))
+                var ancho = GraphicsDevice.Viewport.Bounds.Width;
+                var largo = GraphicsDevice.Viewport.Bounds.Height;
+                if (Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>ancho/2.2 && Mouse.GetState().Position.X<ancho/1.6 ) && (Mouse.GetState().Position.Y>largo/2.6f && Mouse.GetState().Position.Y<largo/2.3f ))
                 {
                     inInstrucciones = true;
                 }
-                if (inInstrucciones==false &&Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>850f && Mouse.GetState().Position.X<1200f ) && (Mouse.GetState().Position.Y>250f && Mouse.GetState().Position.Y<350f ))
+                if (inInstrucciones==false &&Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>ancho/2.2 && Mouse.GetState().Position.X<ancho/1.6 ) && (Mouse.GetState().Position.Y>largo/4.32f && Mouse.GetState().Position.Y<largo/3.85f ))
                 {
                     inMenu = false;
                     
                 }
+                if (inInstrucciones==false &&Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>ancho/2.2 && Mouse.GetState().Position.X<ancho/1.6 ) && (Mouse.GetState().Position.Y>largo/3.2f && Mouse.GetState().Position.Y<largo/2.8f ))
+                {
+                    calidad = !calidad;
 
-                if (inInstrucciones && Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X > 850f && Mouse.GetState().Position.X < 1200f) && (Mouse.GetState().Position.Y > 650f && Mouse.GetState().Position.Y < 750f))
+                }
+                if (inInstrucciones && Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X > ancho/2.2 && Mouse.GetState().Position.X<ancho/1.6) && (Mouse.GetState().Position.Y > largo/1.66f && Mouse.GetState().Position.Y < largo/1.44f))
                 {
                     inInstrucciones = false;
                 }
@@ -881,10 +900,11 @@ namespace TGC.MonoGame.TP
             base.Update(gameTime);
         }
 
+        
 
         private bool isOnTrack()
         {
-            if (Pared1.Intersects(SphereCollide) || Pared2.Intersects(SphereCollide) || Pared3.Intersects(SphereCollide) ||  Pared4.Intersects(SphereCollide) || AguaCollide.Intersects(SphereCollide) || ArenaCollide.Intersects(SphereCollide)){
+            if (Pared1.Intersects(SphereCollide) || RatOBB.Intersects(SphereCollide) ||BirdCollide.Intersects(SphereCollide) || Pared2.Intersects(SphereCollide) || Pared3.Intersects(SphereCollide) ||  Pared4.Intersects(SphereCollide) || AguaCollide.Intersects(SphereCollide) || ArenaCollide.Intersects(SphereCollide)){
                 
                 return false;
             }
@@ -931,34 +951,35 @@ namespace TGC.MonoGame.TP
             }
             if (TexturaActual == RubberTexture)
             {
-                PBR.Parameters["cantidadEnviroment"].SetValue(0.3f);
+                PBR.Parameters["cantidadEnviroment"].SetValue(0.2f);
 
             }
             if (TexturaActual == MetalTexture)
             {
-                PBR.Parameters["cantidadEnviroment"].SetValue(0.8f);
+                PBR.Parameters["cantidadEnviroment"].SetValue(0.7f);
 
             }
             CubeMapCamera.Position = SpherePosition;
-
+                
+            
+            // CALCULAR SOMBRAS
+            GraphicsDevice.SetRenderTarget(RenderTarget);
+              
             generateLevelDepth();
-           
+            GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
+            // CALCULAR SOMBRAS
+            
+            
             DrawWithEnviromentalMap();
            
-
-           /* GraphicsDevice.SetRenderTarget(null);
-            GraphicsDevice.Clear(Color.Black);
-
-            PostProcessEffect.CurrentTechnique = PostProcessEffect.Techniques["PostProcessing"];
-            PostProcessEffect.Parameters["ModelTexture"].SetValue(RenderTarget);
-            FullScreenQuad.Draw(PostProcessEffect); */
+                
             GraphicsDevice.DepthStencilState = DepthStencilState.None;
  
         }
 
         private void DrawWithEnviromentalMap()
-        {
-            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+        {            GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+
             // Draw to our cubemap from the robot position
             for (var face = CubeMapFace.PositiveX; face <= CubeMapFace.NegativeZ; face++)
             {
@@ -983,10 +1004,7 @@ namespace TGC.MonoGame.TP
             GraphicsDevice.SetRenderTarget(null);
             GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
             BlinnEffect.Parameters["shadowMap"].SetValue(RenderTarget);
-            /*BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
-            BlinnEffect.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
-            BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);*/
-            
+          
             DrawAllExceptSphere(Camera.View, Camera.Projection);
             
             PBR.Parameters["environmentMap"].SetValue(EnvironmentMapRenderTarget);
@@ -1046,11 +1064,6 @@ namespace TGC.MonoGame.TP
         {
             if (!inMenu)
             {
-                GraphicsDevice.SetRenderTarget(RenderTarget);
-               
-                generateLevelDepth();
-
-                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
                 GraphicsDevice.SetRenderTarget(EnvironmentMapRenderTarget,face);
                 var originalRasterizerState = GraphicsDevice.RasterizerState;
                var  rasterizerState = new RasterizerState();
@@ -1102,11 +1115,7 @@ namespace TGC.MonoGame.TP
             {
                 
 
-                GraphicsDevice.SetRenderTarget(RenderTarget);
-               
-                generateLevelDepth();
-                GraphicsDevice.SetRenderTarget(null);
-                GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
+                
                 var originalRasterizerState = GraphicsDevice.RasterizerState;
                 var rasterizerState = new RasterizerState();
                 rasterizerState.CullMode = CullMode.None;
@@ -1145,6 +1154,18 @@ namespace TGC.MonoGame.TP
                 DibujarConBlinnPhong(TextMatrix,TextModel,Color.Green,view,projection);
                 InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(new Vector3(1982, 450f, 1450f));
                 DibujarConBlinnPhong(InstruccionMatrix,InstruccionModel,Color.Green,view,projection);
+                InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1982, 460, 1500f));
+                if (calidad)
+                {
+                    DibujarConBlinnPhong(InstruccionMatrix,AltoModel,Color.Green,view,projection);
+
+                }
+                else
+                {
+                    DibujarConBlinnPhong(InstruccionMatrix,BajoModel,Color.Green,view,projection);
+
+                }
+
                 if (inInstrucciones)
                 {
                     InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(new Vector3(1982, 1550f, 1450f));
@@ -1159,7 +1180,7 @@ namespace TGC.MonoGame.TP
                     DibujarConBlinnPhong(InstruccionMatrix,BallModel,Color.White,view,projection);
                     InstruccionMatrix =  Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(1.3f) * Matrix.CreateTranslation(new Vector3(1752, 1500f, 1450f));
                     DibujarConBlinnPhong(InstruccionMatrix,FootModel,Color.Pink,view,projection);
-                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(1.3f) * Matrix.CreateTranslation(new Vector3(1762, 1520f, 1450f));
+                    InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(1.7f) * Matrix.CreateTranslation(new Vector3(1762, 1520f, 1450f));
                     DibujarConBlinnPhong(InstruccionMatrix,BirdModel,Color.Gray,view,projection);
                     InstruccionMatrix = Matrix.CreateRotationY(MathHelper.Pi)* Matrix.CreateRotationX(MathHelper.PiOver4) * Matrix.CreateScale(0.2f) * Matrix.CreateTranslation(new Vector3(1982, 1350f, 1450f));
                     DibujarConBlinnPhong(InstruccionMatrix,VolverModel,Color.Green,view,projection);
@@ -1176,18 +1197,18 @@ namespace TGC.MonoGame.TP
 
         private void generateLevelDepth()
         {
-            for (float i = 0; i < 40; i++)
+            for (float i = 0; i < 30; i++)
             {
-             for (float j = 0; j < 20; j++)
+             for (float j = 0; j < 15; j++)
              {
                 
-                    GrassWorld=Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f - 6000f, 0, j * -200f);
+                    GrassWorld=Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(-i * 200f + 1000f, 0, j * -200f);
                     dibujarDepth(GrassWorld,GrassModel,BlinnEffect);
                 
              }
             }
-
-
+            
+            dibujarDepth(RatWorld,RatModel,BlinnEffect);
             
             BikeWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(30f) * Matrix.CreateTranslation(700f, 50f, 0f);
             dibujarDepth(BikeWorld,BikeModel,BlinnEffect);
@@ -1224,7 +1245,13 @@ namespace TGC.MonoGame.TP
                     dibujarDepth(PathWorld,PathModel,BlinnEffect);
 
             }
+            for (float i = 0; i < 5; i++)
+            {
+                
+                PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i*200f-2000, 5f, - 2000f);
+                dibujarDepth(PathWorld,PathModel,BlinnEffect);
 
+            }
             MonumentWorld =  Matrix.CreateScale(8f) * Matrix.CreateTranslation(400f, 6f, -2500f);
             dibujarDepth(MonumentWorld,MonumentModel,BlinnEffect);
 
@@ -1251,7 +1278,7 @@ namespace TGC.MonoGame.TP
                 
             }
             
-                BirdWorld = Matrix.CreateScale(3f) * Matrix.CreateTranslation(BirdPosition);
+                BirdWorld = Matrix.CreateScale(4f) * Matrix.CreateTranslation(BirdPosition);
                 dibujarDepth(BirdWorld,BirdModel,BlinnEffect);
             
             
@@ -1296,12 +1323,12 @@ namespace TGC.MonoGame.TP
                     dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
                 
             }
-            for (float i = 0; i < 9; i++)
+            for (float i = 0; i < 30; i++)
             {
                 TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f-600f, 8f, -1600f);
                     dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
             }
-            for (float i = 0; i < 11; i++)
+            for (float i = 0; i < 30; i++)
             {
                 TreeWorld =Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f+50f, 8f, -2300f);
 
@@ -1452,13 +1479,21 @@ namespace TGC.MonoGame.TP
 
         private void DibujarPBR(Matrix mundo, Model model)
         {
-            PBR.CurrentTechnique = PBR.Techniques["PBR"];
+            if (calidad)
+            {
+                PBR.Parameters["metallicTexture"]?.SetValue(TexturaMetal);
+                PBR.Parameters["aoTexture"]?.SetValue(TexturaAO);
+                PBR.CurrentTechnique = PBR.Techniques["PBR"];
+            }
+            else
+            {
+                PBR.CurrentTechnique = PBR.Techniques["PBRMalo"];
+
+            }
 
             PBR.Parameters["albedoTexture"]?.SetValue(TexturaActual);
             PBR.Parameters["normalTexture"]?.SetValue(TexturaNormal);
-            PBR.Parameters["metallicTexture"]?.SetValue(TexturaMetal);
             PBR.Parameters["roughnessTexture"]?.SetValue(TexturaRoughness);
-            PBR.Parameters["aoTexture"]?.SetValue(TexturaAO);
 
             PBR.Parameters["matWorldViewProj"].SetValue(mundo *Camera.View *Camera.Projection);
             PBR.Parameters["matInverseTransposeWorld"].SetValue(Matrix.Transpose(Matrix.Invert(mundo)));
@@ -1467,8 +1502,7 @@ namespace TGC.MonoGame.TP
             {
                 Matrix meshMatrix = mesh.ParentBone.Transform;
                 PBR.Parameters["matWorld"].SetValue(mundo*meshMatrix);
-                /*PBR.Parameters["matWorldViewProj"].SetValue(mundo *Camera.View *Camera.Projection);
-                PBR.Parameters["matInverseTransposeWorld"].SetValue(Matrix.Transpose(Matrix.Invert(mundo)));*/
+              
                 mesh.Draw();
             }
 
@@ -1507,19 +1541,19 @@ namespace TGC.MonoGame.TP
         private Vector3 Loss()
         {
             
-                if (Checkpoint1 == 1)
-                {
-                    Velocity = new Vector3(0f, 0f, 0f);
-                    return Checkpoint1Position;
-                }
+              
 
                 if (Checkpoint1 == 1 && Checkpoint2 == 1)
                 {
                     Velocity = new Vector3(0f, 0f, 0f);
                     return Checkpoint2Position;
+                }else if (Checkpoint1 == 1)
+                {
+                    Velocity = new Vector3(0f, 0f, 0f);
+                    return Checkpoint1Position;
                 }
 
-                if (Checkpoint1 == 0 && Checkpoint1 == 0)
+                if (Checkpoint1 == 0 && Checkpoint2 == 0)
                 {
                     loseSoundEffect.Play();
                     inMenu = true;
@@ -1611,9 +1645,10 @@ namespace TGC.MonoGame.TP
             
             BikeWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(30f) * Matrix.CreateTranslation(700f, 50f, 0f);
             DibujarConBlinnPhong(BikeWorld,BikeModel,ActualColor,view,projection);
-            
+            DibujarConBlinnPhong(RatWorld,RatModel,ActualColor,view,projection);
 
-            for (float i = 0; i < 15; i++)
+
+            for (float i = 0; i < 20; i++)
             {
                 
                     PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i*200f-1500, 5f, - 2000f);
@@ -1672,11 +1707,11 @@ namespace TGC.MonoGame.TP
                 
             }
             
-                BirdWorld = Matrix.CreateScale(3f) * Matrix.CreateTranslation(BirdPosition);
+                BirdWorld = Matrix.CreateScale(4f) * Matrix.CreateTranslation(BirdPosition);
                 DibujarConBlinnPhong(BirdWorld,BirdModel,ActualColor,view,projection);
             
             
-                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-4200, 12f, -2000f);
+                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-5200, 12f, -2000f);
                 DibujarConBlinnPhong(ArcoWorld,ArcoModel,ActualColor,view,projection);
             
 

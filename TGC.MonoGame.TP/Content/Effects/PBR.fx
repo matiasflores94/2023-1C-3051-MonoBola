@@ -324,7 +324,103 @@ float4 MainPS(VertexShaderOutput input) : COLOR
     pbrenviroment.rgb *= 1.0 + 0.7  * notInShadow;
     return pbrenviroment;
 }
+float4 MainLowQPS(VertexShaderOutput input) : COLOR
+{
+		//CALCULO SHADOWS
+	
+	
+	
+		float3 lightSpacePosition = input.LightSpacePosition.xyz / input.LightSpacePosition.w;
+    	float2 shadowMapTextureCoordinates = 0.5 * lightSpacePosition.xy + float2(0.5, 0.5);
+    	shadowMapTextureCoordinates.y = 1.0f - shadowMapTextureCoordinates.y;
+	
+    	float3 normals = normalize(input.WorldNormal.rgb);
+    	float3 lightDirection = normalize(lightPosition - input.WorldPosition.xyz);
+    	float inclinationBias = max(modulatedEpsilon * (1.0 - dot(normals, lightDirection)), maxEpsilon);
+	    float shadowMapDepth = tex2D(shadowMapSampler, shadowMapTextureCoordinates).r + inclinationBias;
+        	
+        	// Compare the shadowmap with the REAL depth of this fragment
+        	// in light space
+	
+		// Sample and smooth the shadowmap
+		// Also perform the comparison inside the loop and average the result
+    	
+    	float notInShadow = 0.0;
+    	float2 texelSize = 1.0 / shadowMapSize;
+    	for (int x = -1; x <= 1; x++)
+        for (int y = -1; y <= 1; y++)
+        {
+            float pcfDepth = tex2D(shadowMapSampler, shadowMapTextureCoordinates + float2(x, y) * texelSize).r + inclinationBias;
+            notInShadow += step(lightSpacePosition.z, pcfDepth) / 9.0;
+        }
+	
+   
+		//CALCULO SHADOWS
+	float3 albedo = pow(tex2D(albedoSampler, input.TextureCoordinates).rgb, float3(2.2, 2.2, 2.2));
+	float roughness = tex2D(roughnessSampler, input.TextureCoordinates).r;
 
+
+
+	float3 worldNormal = input.WorldNormal;
+	float3 normal = getNormalFromMap(input.TextureCoordinates, input.WorldPosition.xyz, worldNormal);
+    float3 view = normalize(eyePosition - input.WorldPosition.xyz);
+
+	float3 F0 = float3(0.04, 0.04, 0.04);
+	
+	// Reflectance equation
+	float3 Lo = float3(0.0, 0.0, 0.0);
+	
+	for (int index = 0; index < LIGHT_COUNT; index++)
+	{
+	
+
+		float3 light = lightPositions[index] - input.WorldPosition.xyz;
+		float distance = length(light);
+		// Normalize our light vector after using its length
+		light = normalize(light);
+		float3 halfVector = normalize(view + light);		
+		float attenuation = 1.0 / (distance);
+		float3 radiance = lightColors[index] * attenuation;
+		
+
+		// Cook-Torrance BRDF
+		float NDF = DistributionGGX(normal, halfVector, roughness);
+		float G = GeometrySmith(normal, view, light, roughness);
+		float3 F = fresnelSchlick(max(dot(halfVector, view), 0.0), F0);
+
+		float3 nominator = NDF * G * F;
+		float denominator = LIGHT_COUNT * max(dot(normal, view), 0.0) + 0.001;
+		float3 specular = nominator / denominator;
+
+		float3 kS = F;
+        
+		float3 kD = float3(1.0, 1.0, 1.0) - kS;
+        
+
+		// Scale light by NdotL
+		float NdotL = max(dot(normal, light), 0.0);
+
+        //TODO
+		Lo += (kD * NdotL * albedo / PI + specular) * radiance;
+	}
+
+	float3 ambient = float3(0.03, 0.03, 0.03) * albedo ;
+
+    float3 color = ambient + Lo;
+
+	// HDR tonemapping
+	color = color / (color + float3(1, 1, 1));
+    
+	float exponent = 1.0 / 2.2;
+	// Gamma correct
+	color = pow(color, float3(exponent, exponent, exponent));
+    float3 reflection = reflect(view, normal);
+    float3 reflectionColor = texCUBE(environmentMapSampler, reflection).rgb;
+    float fresnel = saturate((1.0 - dot(normal, view))); 
+    float4 pbrenviroment =  float4(lerp(color, reflectionColor, fresnel*cantidadEnviroment), 1);
+    pbrenviroment.rgb *= 1.0 + 0.7  * notInShadow;
+    return pbrenviroment;
+}
 DepthPassVertexShaderOutput DepthVS(in DepthPassVertexShaderInput input)
 {
 	DepthPassVertexShaderOutput output;
@@ -346,6 +442,14 @@ technique DepthPass
 	{
 		VertexShader = compile VS_SHADERMODEL DepthVS();
 		PixelShader = compile PS_SHADERMODEL DepthPS();
+	}
+};
+technique PBRMalo
+{
+	pass Pass0
+	{
+		VertexShader = compile VS_SHADERMODEL MainVS();
+		PixelShader = compile PS_SHADERMODEL MainLowQPS();
 	}
 };
 
