@@ -22,7 +22,7 @@ Los recursos usados se almacenan utilizando [Git LFS](https://git-lfs.github.com
 
 TGC, Tgcito  |  Apellido, Nombre
 ------------ | -------------
-| <img src="https://github.com/matiasflores94/2023-1C-3051-MonoBola/blob/292698169d975947632cc1e655c6ff308473c27b/integrante.jpg" height="500"> | Luca Prestia > |
+| <img src="https://github.com/matiasflores94/2023-1C-3051-MonoBola/blob/292698169d975947632cc1e655c6ff308473c27b/integrante.jpg" height="500"> | Luca Prestia |
 
 ## Capturas
 
@@ -34,4 +34,4 @@ TGC, Tgcito  |  Apellido, Nombre
 
 ## Game Play
 
-[![Watch the video](https://img.youtube.com/vi/pgEwUC0jvH4/0.jpg)](https://www.youtube.com/playlist?list=PLRM4L32DjvnazuMl8wZlbpEYL5Qh63ulG)
+[![Watch the video](https://github.com/matiasflores94/2023-1C-3051-MonoBola/blob/master/Gameplay.mp4G)
