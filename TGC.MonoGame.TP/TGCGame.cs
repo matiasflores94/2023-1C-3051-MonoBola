@@ -314,8 +314,8 @@ namespace TGC.MonoGame.TP
             Checkpoint2Position = new Vector3(-1680, 0, -2000);
             CheckPoint1Collide = new BoundingCylinder(Checkpoint1Position,  CheckPointRadius,CheckPointHeight/2);
             CheckPoint2Collide = new BoundingCylinder(Checkpoint2Position,CheckPointRadius,CheckPointHeight/2);
-            FinishPosition = new Vector3(-6200, 12f, -2000f);
-            FinishCollide = new OrientedBoundingBox(FinishPosition, new Vector3(200,200,1));
+            FinishPosition = new Vector3(-5200, 12f, -2000f);
+            FinishCollide = new OrientedBoundingBox(FinishPosition, new Vector3(12,50000,5000));
             Pared1 = new OrientedBoundingBox(new Vector3(280,500,-750), new Vector3(1,500,1000));
             Pared2 = new OrientedBoundingBox(new Vector3(520,500,-950), new Vector3(1,500,1200));
             Pared3 = new OrientedBoundingBox(new Vector3(-2045,500,-1760), new Vector3(2340,2000,1));
@@ -872,7 +872,7 @@ namespace TGC.MonoGame.TP
                 {
                     inInstrucciones = true;
                 }
-                if (inInstrucciones==false &&Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>ancho/2.2 && Mouse.GetState().Position.X<ancho/1.6 ) && (Mouse.GetState().Position.Y>largo/4.32f && Mouse.GetState().Position.Y<largo/3.85f ))
+                if (inInstrucciones==false &&Mouse.GetState().LeftButton == ButtonState.Pressed && (Mouse.GetState().Position.X>ancho/2.2 && Mouse.GetState().Position.X<ancho/1.6 ) && (Mouse.GetState().Position.Y>largo/4.12f && Mouse.GetState().Position.Y<largo/3.4f ))
                 {
                     inMenu = false;
                     
@@ -908,11 +908,11 @@ namespace TGC.MonoGame.TP
                 
                 return false;
             }
-            if (Pared5.Intersects(SphereCollide)&&Checkpoint2==0)
+           /* if (Pared5.Intersects(SphereCollide)&&Checkpoint2==0)
             {
                 return false;
 
-            }
+            }*/
             return true;
         }
 
@@ -1282,7 +1282,7 @@ namespace TGC.MonoGame.TP
                 dibujarDepth(BirdWorld,BirdModel,BlinnEffect);
             
             
-                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-3200, 12f, -2000f);
+                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(FinishPosition);
                 dibujarDepth(ArcoWorld,ArcoModel,BlinnEffect);
             
 
@@ -1711,7 +1711,7 @@ namespace TGC.MonoGame.TP
                 DibujarConBlinnPhong(BirdWorld,BirdModel,ActualColor,view,projection);
             
             
-                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(-5200, 12f, -2000f);
+                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(FinishPosition);
                 DibujarConBlinnPhong(ArcoWorld,ArcoModel,ActualColor,view,projection);
             
 
