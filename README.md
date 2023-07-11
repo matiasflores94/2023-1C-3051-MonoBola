@@ -34,4 +34,8 @@ TGC, Tgcito  |  Apellido, Nombre
 
 ## Game Play
 
-![Watch the video](https://www.youtube.com/watch?v=aiFev8Qi6j4)
+![Watch the video](
+
+https://github.com/matiasflores94/2023-1C-3051-MonoBola/assets/102747439/185c1a46-b286-49ff-ab93-95ab24abf937
+
+)
