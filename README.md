@@ -22,7 +22,7 @@ Los recursos usados se almacenan utilizando [Git LFS](https://git-lfs.github.com
 
 TGC, Tgcito  |  Apellido, Nombre
 ------------ | -------------
-| <img src="https://github.com/matiasflores94/2023-1C-3051-MonoBola/blob/292698169d975947632cc1e655c6ff308473c27b/integrante.jpg" height="500"> | <img src="https://github.com/tgc-utn/tgc-utn.github.io/blob/master/images/trofeotp.png" height="500"> |
+| <img src="https://github.com/matiasflores94/2023-1C-3051-MonoBola/blob/292698169d975947632cc1e655c6ff308473c27b/integrante.jpg" height="500"> | Luca Prestia height="500"> |
 
 ## Capturas
 
