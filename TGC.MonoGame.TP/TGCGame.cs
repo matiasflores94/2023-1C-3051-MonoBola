@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using BepuPhysics.Collidables;
 using Microsoft.Xna.Framework;
@@ -356,11 +356,11 @@ namespace TGC.MonoGame.TP
 
             // ENVIROMENT MAP
             CubeMapCamera = new StaticCamera(1f, SpherePosition, Vector3.UnitX, Vector3.Up);
-            CubeMapCamera.BuildProjection(1f, 0.1f,6000f , MathHelper.PiOver4);
+            CubeMapCamera.BuildProjection(1f, 0.1f,1000f , MathHelper.PiOver4);
             // Camera Light
 
            TargetLightCamera = new TargetCamera(1f,lightPosition , Vector3.Zero);
-            TargetLightCamera.BuildProjection(1f, 0.1f, 6000f,
+            TargetLightCamera.BuildProjection(1f, 0.1f, 3000f,
                 MathHelper.PiOver2);
             base.Initialize();
         }
@@ -379,7 +379,7 @@ namespace TGC.MonoGame.TP
             FullScreenQuad = new FullScreenQuad(GraphicsDevice);
             RenderTarget = new RenderTarget2D(GraphicsDevice, ShadowmapSize, ShadowmapSize, false,
                 SurfaceFormat.Single, DepthFormat.Depth24, 0, RenderTargetUsage.PlatformContents);
-            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 2048, false,
+            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 4, false,
                 SurfaceFormat.Color, DepthFormat.Depth24, 0, RenderTargetUsage.DiscardContents);
             GraphicsDevice.BlendState = BlendState.Opaque;
             BodyModel = Content.Load<Model>(ContentFolder3D + "body/First");
@@ -946,12 +946,12 @@ namespace TGC.MonoGame.TP
             MenuEffect.Parameters["Projection"].SetValue(Camera.Projection);
             if (TexturaActual == RockTexture)
             {
-                PBR.Parameters["cantidadEnviroment"].SetValue(0.1f);
+                PBR.Parameters["cantidadEnviroment"].SetValue(0f);
 
             }
             if (TexturaActual == RubberTexture)
             {
-                PBR.Parameters["cantidadEnviroment"].SetValue(0.2f);
+                PBR.Parameters["cantidadEnviroment"].SetValue(0f);
 
             }
             if (TexturaActual == MetalTexture)
@@ -995,8 +995,7 @@ namespace TGC.MonoGame.TP
                 BlinnEffect.Parameters["lightPosition"].SetValue(lightPosition);
                 BlinnEffect.Parameters["shadowMapSize"].SetValue(Vector2.One * ShadowmapSize);
                 BlinnEffect.Parameters["LightViewProjection"].SetValue(TargetLightCamera.View * TargetLightCamera.Projection);
-
-                DrawAllExceptSphere(CubeMapCamera.View, CubeMapCamera.Projection,face);
+                if(TexturaActual==MetalTexture || inMenu)DrawAllExceptSphere(CubeMapCamera.View, CubeMapCamera.Projection,face);
             
              
             }
@@ -1060,19 +1059,21 @@ namespace TGC.MonoGame.TP
                     break;
             }
         }
+
+  
         private void DrawAllExceptSphere(Matrix view,Matrix projection,CubeMapFace face)
         {
             if (!inMenu)
             {
                 GraphicsDevice.SetRenderTarget(EnvironmentMapRenderTarget,face);
-                var originalRasterizerState = GraphicsDevice.RasterizerState;
+                /*var originalRasterizerState = GraphicsDevice.RasterizerState;
                var  rasterizerState = new RasterizerState();
                 rasterizerState.CullMode = CullMode.None;
                 Graphics.GraphicsDevice.RasterizerState = rasterizerState;
-                SkyBox.Draw(Camera.View,Camera.View, Camera.Position);
+               // SkyBox.Draw(Camera.View,Camera.View, Camera.Position);
                 GraphicsDevice.RasterizerState = originalRasterizerState;
-
-                generateLevel(view,projection);
+*/
+                generateLevel(view,projection,false);
                 if (Checkpoint1==0)
                 {
                     DrawCylinder(Cylinder, Checkpoint1Position);
@@ -1123,7 +1124,7 @@ namespace TGC.MonoGame.TP
 
                 SkyBox.Draw(view,projection, Camera.Position);
                 GraphicsDevice.RasterizerState = originalRasterizerState;
-                generateLevel(view,projection);
+                generateLevel(view,projection,true);
                 if (Checkpoint1==0)
                 {
                     DrawCylinder(Cylinder, Checkpoint1Position);
@@ -1440,7 +1441,7 @@ namespace TGC.MonoGame.TP
            if (tiempoStar > 0f)
             {
                 _random = new Random(SEED);
-                colorcito = RandomColor(_random);
+             
             }
 
            DibujarPBR(mundoCalculado,SphereModel);
@@ -1625,7 +1626,7 @@ namespace TGC.MonoGame.TP
             
                 BlinnEffect.CurrentTechnique = BlinnEffect.Techniques["BasicColorDrawing"];
         }
-        private void generateLevel(Matrix view,Matrix projection)
+        private void generateLevel(Matrix view,Matrix projection,Boolean enviroment)
         {
             Color ActualColor;
             ActualColor = Color.DarkGreen;
@@ -1655,7 +1656,7 @@ namespace TGC.MonoGame.TP
                     DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);
 
             }
-     
+            
             for (float i = 0; i < 5; i++)
             {
                 
@@ -1664,6 +1665,7 @@ namespace TGC.MonoGame.TP
 
                 
             }
+            
             for (float i = 0; i < 4; i++)
             {
                 PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(400f, 5f, i * -200f );
@@ -1678,14 +1680,14 @@ namespace TGC.MonoGame.TP
                     DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);
 
             }
-
+            if(enviroment){
             ActualColor = Color.DarkGray;
             MonumentWorld =  Matrix.CreateScale(8f) * Matrix.CreateTranslation(400f, 6f, -2500f);
             DibujarConBlinnPhong(MonumentWorld,MonumentModel,ActualColor,view,projection);
 
             SlideWorld =  Matrix.CreateScale(140f) * Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateTranslation(-520f, 6f, -2000f);
             DibujarConBlinnPhong(SlideWorld,SlideModel,ActualColor,view,projection);
-
+            }
             ActualColor = Color.White;
             if (BoundingFrustum.Intersects(BallCollide1))
             {
@@ -1706,7 +1708,7 @@ namespace TGC.MonoGame.TP
                     DibujarConBlinnPhong(BallWorld,BallModel,ActualColor,view,projection);
                 
             }
-            
+            if(enviroment){
                 BirdWorld = Matrix.CreateScale(4f) * Matrix.CreateTranslation(BirdPosition);
                 DibujarConBlinnPhong(BirdWorld,BirdModel,ActualColor,view,projection);
             
@@ -1729,9 +1731,9 @@ namespace TGC.MonoGame.TP
             BoyWorld = Matrix.CreateRotationY(MathHelper.PiOver4) *Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f, 8f, -500f);
             DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor,view,projection);
             DibujarConBlinnPhong(FootWorld,FootModel,ActualColor,view,projection);
-
+            }
             ActualColor = Color.LimeGreen;
-
+            if(enviroment){
             for (float i = 0; i < 25; i++)
             {
               
@@ -1774,7 +1776,7 @@ namespace TGC.MonoGame.TP
                DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
 
             }
-
+            }
             ActualColor =Color.Peru;
 
             DogWorld =  Matrix.CreateScale(0.3f) * Matrix.CreateTranslation(700f, 6f, -450f);
