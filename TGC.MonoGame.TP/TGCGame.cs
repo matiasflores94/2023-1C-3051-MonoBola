@@ -51,7 +51,7 @@ namespace TGC.MonoGame.TP
             // Hace que el mouse sea visible.
             IsMouseVisible = true;
         }
-        private const int ShadowmapSize = 2048;
+        private const int ShadowmapSize = 2048/8;
 
         private const float SPEED = 50f;
         private const float DIAMETER = 10f;
@@ -379,7 +379,7 @@ namespace TGC.MonoGame.TP
             FullScreenQuad = new FullScreenQuad(GraphicsDevice);
             RenderTarget = new RenderTarget2D(GraphicsDevice, ShadowmapSize, ShadowmapSize, false,
                 SurfaceFormat.Single, DepthFormat.Depth24, 0, RenderTargetUsage.PlatformContents);
-            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 2048, false,
+            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 32, false,
                 SurfaceFormat.Color, DepthFormat.Depth24, 0, RenderTargetUsage.DiscardContents);
             GraphicsDevice.BlendState = BlendState.Opaque;
             BodyModel = Content.Load<Model>(ContentFolder3D + "body/First");
@@ -983,7 +983,6 @@ namespace TGC.MonoGame.TP
             // Draw to our cubemap from the robot position
             for (var face = CubeMapFace.PositiveX; face <= CubeMapFace.NegativeZ; face++)
             {
-                // Set the render target as our cubemap face, we are drawing the scene in this texture
                 GraphicsDevice.SetRenderTarget(EnvironmentMapRenderTarget, face);
                 GraphicsDevice.Clear(ClearOptions.Target | ClearOptions.DepthBuffer, Color.CornflowerBlue, 1f, 0);
 
