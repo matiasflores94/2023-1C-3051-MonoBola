@@ -34,4 +34,4 @@ TGC, Tgcito  |  Apellido, Nombre
 
 ## Game Play
 
-![Watch the video]([https://youtu.be/aiFev8Qi6j4](https://www.youtube.com/watch?v=aiFev8Qi6j4)https://www.youtube.com/watch?v=aiFev8Qi6j4)
+![Watch the video](https://www.youtube.com/watch?v=aiFev8Qi6j4)
