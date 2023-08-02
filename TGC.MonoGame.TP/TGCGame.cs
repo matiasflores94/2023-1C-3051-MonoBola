@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net.Http;
 using BepuPhysics;
 using BepuPhysics.CollisionDetection.CollisionTasks;
+using BepuPhysics.Trees;
 using BepuUtilities.Memory;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
@@ -51,7 +52,7 @@ namespace TGC.MonoGame.TP
             // Hace que el mouse sea visible.
             IsMouseVisible = true;
         }
-        private const int ShadowmapSize = 2048/8;
+        private const int ShadowmapSize = 2048;
 
         private const float SPEED = 50f;
         private const float DIAMETER = 10f;
@@ -168,8 +169,20 @@ namespace TGC.MonoGame.TP
         private BoundingSphere BallCollide1{ get; set; }
         private BoundingSphere BallCollide2{ get; set; }
         private BoundingSphere BallCollide3{ get; set; }
+        private OrientedBoundingBox BodyFrustum2{ get; set; }
 
         private OrientedBoundingBox FinishCollide { get; set; }
+        private OrientedBoundingBox GrassFrustum { get; set; }
+        private OrientedBoundingBox PathFrustum { get; set; }
+        private OrientedBoundingBox MonumentFrustum { get; set; }
+        private OrientedBoundingBox TreeSFrustum{ get; set; }
+        private OrientedBoundingBox TreeBFrustum{ get; set; }
+
+        private OrientedBoundingBox SillaFrustum { get; set; }
+        private OrientedBoundingBox BodyFrustum{ get; set; }
+        private OrientedBoundingBox BikeFrustum{ get; set; }
+        private OrientedBoundingBox LampFrustum{ get; set; }
+
         private OrientedBoundingBox Pared1 { get; set; }
         private OrientedBoundingBox AguaCollide { get; set; }
         private OrientedBoundingBox FootOBB { get; set; }
@@ -238,8 +251,7 @@ namespace TGC.MonoGame.TP
 
         private Effect SkyBoxEffect { get; set; }
         private Effect PBR { get; set; }
-        private Effect PBRMalo { get; set; }
-        private Effect ActualPBR { get; set; }
+  
 
         private SkyBox SkyBox { get; set; }
         public TargetCamera TargetLightCamera { get; set; }
@@ -353,6 +365,7 @@ namespace TGC.MonoGame.TP
             Mouse.SetPosition(GraphicsDevice.Viewport.Bounds.Height/2,GraphicsDevice.Viewport.Bounds.Width/2);
             GraphicsDevice.BlendState = BlendState.AlphaBlend;
             BoundingFrustum = new BoundingFrustum(Camera.View * Camera.Projection);
+            
 
             // ENVIROMENT MAP
             CubeMapCamera = new StaticCamera(1f, SpherePosition, Vector3.UnitX, Vector3.Up);
@@ -362,6 +375,27 @@ namespace TGC.MonoGame.TP
            TargetLightCamera = new TargetCamera(1f,lightPosition , Vector3.Zero);
             TargetLightCamera.BuildProjection(1f, 0.1f, 6000f,
                 MathHelper.PiOver2);
+            //BB For FrustumCulling
+            GrassFrustum = new OrientedBoundingBox(new Vector3(0,0,0),new Vector3(200,10,200));
+            PathFrustum = new OrientedBoundingBox(new Vector3(0,0,0),new Vector3(200,10,200));
+            MonumentFrustum = new OrientedBoundingBox(new Vector3(400f, 6f, -2500f), new Vector3(200, 200, 200));
+            BodyFrustum = new OrientedBoundingBox(new Vector3(200f, 150f, 150f), new Vector3(30, 100, 30));
+            BodyFrustum2 = new OrientedBoundingBox(new Vector3(200f, 150f, 0f), new Vector3(30, 60, 30));
+            TreeSFrustum = new OrientedBoundingBox(new Vector3(200f, 150f, 0f), new Vector3(5, 10, 5));
+            TreeBFrustum = new OrientedBoundingBox(new Vector3(200f, 150f, 0f), new Vector3(20, 60, 50));
+
+           // SillaFrustum = new OrientedBoundingBox()
+            /*
+            private OrientedBoundingBox BodyFrustum{ get; set; }
+            private OrientedBoundingBox BikeFrustum{ get; set; }
+            private OrientedBoundingBox LampFrustum{ get; set; }*/
+            
+            
+            
+            
+            
+            
+            
             base.Initialize();
         }
 
@@ -379,7 +413,7 @@ namespace TGC.MonoGame.TP
             FullScreenQuad = new FullScreenQuad(GraphicsDevice);
             RenderTarget = new RenderTarget2D(GraphicsDevice, ShadowmapSize, ShadowmapSize, false,
                 SurfaceFormat.Single, DepthFormat.Depth24, 0, RenderTargetUsage.PlatformContents);
-            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 32, false,
+            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 64, false,
                 SurfaceFormat.Color, DepthFormat.Depth24, 0, RenderTargetUsage.DiscardContents);
             GraphicsDevice.BlendState = BlendState.Opaque;
             BodyModel = Content.Load<Model>(ContentFolder3D + "body/First");
@@ -635,7 +669,6 @@ namespace TGC.MonoGame.TP
                 moverCamaraMouse();
                // TestCamera.Update(gameTime);
 
-                BoundingFrustum.Matrix = Camera.View * Camera.Projection;
 
                 // Aca deberiamos poner toda la logica de actualizacion del juego.
                 //chequearPropiedadesTextura(BlinnEffect.Parameters["ModelTexture"]?.GetValueTexture2D());
@@ -961,7 +994,8 @@ namespace TGC.MonoGame.TP
             }
             CubeMapCamera.Position = SpherePosition;
                 
-            
+            BoundingFrustum.Matrix = Camera.View * Camera.Projection;
+
             // CALCULAR SOMBRAS
             GraphicsDevice.SetRenderTarget(RenderTarget);
               
@@ -1286,6 +1320,7 @@ namespace TGC.MonoGame.TP
             
 
             BodyWorld =Matrix.CreateScale(1f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateTranslation(200f, 150f, 150f);
+            
             dibujarDepth(BodyWorld,BodyModel,BlinnEffect);
 
             
@@ -1301,8 +1336,8 @@ namespace TGC.MonoGame.TP
 
             for (float i = 0; i < 25; i++)
             {
-              
                     TreeWorld = Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(300f, 8f, i * -40f + 100f);
+                    
                     dibujarDepth(TreeWorld,Tree1Model,BlinnEffect);
 
             }
@@ -1624,7 +1659,316 @@ namespace TGC.MonoGame.TP
             
                 BlinnEffect.CurrentTechnique = BlinnEffect.Techniques["BasicColorDrawing"];
         }
-        private void generateLevel(Matrix view,Matrix projection)
+       
+
+    private void moverCamaraMouse()
+    {
+        SphereRotation = Matrix.CreateRotationY(Mouse.GetState().Position.ToVector2().X*MouseSensitivity);
+
+        SphereFrontDirection = Vector3.Transform(Vector3.Forward, SphereRotation);
+    }
+
+    private void chequearPropiedadesTextura(Texture2D texture){
+        if (texture == RubberTexture){
+            JumpSpeed = 200f;
+        }else if (texture == MetalTexture){
+            currentSpeed = 75f;
+        }else if (texture == RockTexture){
+            currentSpeed = 20f;
+        }
+    }
+     private void generateLevel(Matrix view,Matrix projection) 
+        {
+            Color ActualColor;
+            ActualColor = Color.DarkGreen;
+            for (float i = 0; i < 40; i++)
+            {
+             for (float j = 0; j < 20; j++)
+             {
+                    GrassFrustum.Center = new Vector3(i * 200f - 6000f, 0, j * -200f);
+                    GrassWorld=Matrix.CreateScale(0.4f) * Matrix.CreateTranslation(i * 200f - 6000f, 0, j * -200f);
+                    if (GrassFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(GrassWorld, GrassModel, ActualColor, view, projection);
+                    }
+             }
+            }
+
+            ActualColor = Color.DarkGray;
+
+            
+            BikeWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(30f) * Matrix.CreateTranslation(700f, 50f, 0f);
+            DibujarConBlinnPhong(BikeWorld,BikeModel,ActualColor,view,projection);
+            DibujarConBlinnPhong(RatWorld,RatModel,ActualColor,view,projection);
+
+
+            for (float i = 0; i < 20; i++)
+            {
+                
+                    PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i*200f-1500, 5f, - 2000f);
+                    PathFrustum.Center = new Vector3(-i * 200f - 1500, 5f, -2000f);
+                    if (PathFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);    
+                    }
+                    
+
+            }
+     
+            for (float i = 0; i < 5; i++)
+            {
+                
+                    PathWorld =  Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(-i * 200f + 400f, 5f, -2000);
+
+                    PathFrustum.Center = new Vector3(-i * 200f + 400f, 5f, -2000f);
+                    if (PathFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);    
+                    }
+                
+            }
+            for (float i = 0; i < 4; i++)
+            {
+                PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(400f, 5f, i * -200f );
+
+                PathFrustum.Center = new Vector3(400f, 5f, i * -200f);
+                if (PathFrustum.Intersects(BoundingFrustum))
+                {
+                    DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);    
+                }
+                
+            }
+            for (float i = 0; i < 2; i++)
+            {
+               
+                    PathWorld = Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(400f, 5f, i * -200f - 1750f);
+
+                    PathFrustum.Center = new Vector3(400f, 5f, i * -200f - 1750f);
+                    if (PathFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(PathWorld,PathModel,ActualColor,view,projection);    
+                    }
+            }
+
+            ActualColor = Color.DarkGray;
+            MonumentWorld =  Matrix.CreateScale(8f) * Matrix.CreateTranslation(400f, 6f, -2500f);
+            if (MonumentFrustum.Intersects(BoundingFrustum))
+            {
+                DibujarConBlinnPhong(MonumentWorld,MonumentModel,ActualColor,view,projection);
+
+            }
+
+            SlideWorld =  Matrix.CreateScale(140f) * Matrix.CreateRotationY(-MathHelper.PiOver2) * Matrix.CreateTranslation(-520f, 6f, -2000f);
+            if (SlideCollide.Intersects(BoundingFrustum))
+            {
+                DibujarConBlinnPhong(SlideWorld,SlideModel,ActualColor,view,projection);
+
+            }
+
+            ActualColor = Color.White;
+            if (BoundingFrustum.Intersects(BallCollide1))
+            {
+                BallWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.8f) * Matrix.CreateTranslation(400f, 12f, 0f + -200f);
+                DibujarConBlinnPhong(BallWorld,BallModel,ActualColor,view,projection);
+
+            }
+
+            if (BoundingFrustum.Intersects(BallCollide2))
+            {
+                BallWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(1f) * Matrix.CreateTranslation(350f, 12f, 0f + -400f);
+                DibujarConBlinnPhong(BallWorld,BallModel,ActualColor,view,projection);
+            }
+            if (BoundingFrustum.Intersects(BallCollide3)){
+
+                
+                    BallWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(1f) * Matrix.CreateTranslation(450f, 12f, 0f +  -600f);
+                    DibujarConBlinnPhong(BallWorld,BallModel,ActualColor,view,projection);
+                
+            }
+            
+            BirdWorld = Matrix.CreateScale(4f) * Matrix.CreateTranslation(BirdPosition);
+            if (BoundingFrustum.Intersects(BirdCollide))
+            {
+                 DibujarConBlinnPhong(BirdWorld,BirdModel,ActualColor,view,projection);
+            }
+           
+            
+            
+            if (FinishCollide.Intersects(BoundingFrustum))
+            {
+                ArcoWorld =Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(2f) * Matrix.CreateTranslation(FinishPosition);
+
+                DibujarConBlinnPhong(ArcoWorld,ArcoModel,ActualColor,view,projection);    
+            }
+            
+            
+
+            ActualColor = Color.LightPink;
+            
+                BodyWorld =Matrix.CreateScale(1f) * Matrix.CreateRotationY(MathHelper.Pi) * Matrix.CreateTranslation(200f, 150f, 150f);
+                BodyFrustum.Center=new Vector3(200f, 150f, 150f);
+                if (BodyFrustum.Intersects(BoundingFrustum)) { 
+                    DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor,view,projection);
+                }
+                
+            BodyWorld =Matrix.CreateScale(0.6f) * Matrix.CreateTranslation(200f, 150f, 0f);
+            BodyFrustum.Center=new Vector3(200f, 150f, 0f);
+            if (BodyFrustum.Intersects(BoundingSphere.CreateFromFrustum(BoundingFrustum)))//BodyFrustum2.Intersects(BoundingFrustum))
+            {
+                DibujarConBlinnPhong(BodyWorld,BodyModel,ActualColor,view,projection);
+            }
+            
+
+            BoyWorld = Matrix.CreateRotationY(MathHelper.PiOver4) *Matrix.CreateScale(10f) * Matrix.CreateTranslation(200f, 8f, -500f);
+        
+                DibujarConBlinnPhong(FootWorld,FootModel,ActualColor,view,projection);    
+            
+            
+
+            ActualColor = Color.LimeGreen;
+
+            for (float i = 0; i < 25; i++)
+            {
+               
+                    TreeSFrustum.Center = new Vector3(300f, 8f, i * -40f + 100f);
+                    TreeWorld = Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(300f, 8f, i * -40f + 100f);
+                    if (TreeSFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
+                    }
+
+            }
+
+            for (float i = 0; i < 25; i++)
+            {
+                TreeSFrustum.Center = new Vector3(510f, 8f, i * -40f + 100f);
+                    Tree1World =Matrix.CreateScale(0.008f) * Matrix.CreateTranslation(510f, 8f, i * -40f + 100f);
+                    if (TreeSFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(Tree1World,Tree1Model,ActualColor,view,projection);
+                    }
+                
+            }
+
+            for (float i = 0; i < 6; i++)
+            {
+                TreeBFrustum.Center = new Vector3(-300f, 8f, i * -300f + 100f);
+                    TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-300f, 8f, i * -300f + 100f);
+                    if (TreeBFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
+
+                    }
+                
+            }
+            for (float i = 0; i < 9; i++)
+            {
+                TreeBFrustum.Center = new Vector3(-i*300f-600f, 8f, -1600f);
+
+                TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f-600f, 8f, -1600f);
+                if (TreeBFrustum.Intersects(BoundingFrustum))
+                {
+                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
+
+                }            }
+            for (float i = 0; i < 11; i++)
+            {
+                TreeBFrustum.Center = new Vector3(-i*300f+50f, 8f, -2300f);
+
+                TreeWorld =Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(-i*300f+50f, 8f, -2300f);
+
+                if (TreeBFrustum.Intersects(BoundingFrustum))
+                {
+                    DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
+
+                }                
+            }
+
+            for (float i = 0; i < 13; i++)
+            {
+                TreeBFrustum.Center = new Vector3(1000, 8f, i * -200f + 100f);
+               TreeWorld = Matrix.CreateScale(0.1f) * Matrix.CreateTranslation(1000, 8f, i * -200f + 100f);
+               if (TreeBFrustum.Intersects(BoundingFrustum))
+               {
+                   DibujarConBlinnPhong(TreeWorld,Tree1Model,ActualColor,view,projection);
+
+               }
+            }
+
+            ActualColor =Color.Peru;
+
+            DogWorld =  Matrix.CreateScale(0.3f) * Matrix.CreateTranslation(700f, 6f, -450f);
+            DibujarConBlinnPhong(DogWorld,DogModel,ActualColor,view,projection);
+                            
+
+            if (BoundingFrustum.Intersects(BridgeCollision))
+            {
+                BridgeWorld = Matrix.CreateScale(100f) * Matrix.CreateRotationX(-1f * MathHelper.PiOver2) * Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateTranslation(400f, 0f, -1300f); 
+                DibujarConBlinnPhong(BridgeWorld,BridgeModel,ActualColor,view,projection);
+                
+            }
+
+            for (float i = 0; i < 3; i++)
+            {
+                
+                    BenchWorld = Matrix.CreateScale(2f) * Matrix.CreateRotationY(-1f * MathHelper.Pi) * Matrix.CreateTranslation(-100f, -100f, i * -320 - 320f);
+                    DibujarConBlinnPhong(BridgeWorld,BridgeModel,ActualColor,view,projection);
+                
+            }
+            ActualColor =Color.Yellow;
+
+           
+            if (drawStar)
+            {
+               
+                    StarWorld = Matrix.CreateScale(1f) * Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateTranslation(400f, 5f, -100f);
+                    
+                    DibujarConBlinnPhong(StarWorld,StarModel,ActualColor,view,projection);
+                
+            }
+
+            for (float i = 0; i < 5; i++)
+            {
+                for (float j = 0; j < 5; j++)
+                {
+                    GrassWorld = Matrix.CreateScale(0.4f) *
+                                 Matrix.CreateTranslation(-i * 200f - 600f, 6f, j * -200f - 1750f);
+                    GrassFrustum.Center = new Vector3(-i * 200f - 600f, 6f, j * -200f - 1750f);
+                    if (GrassFrustum.Intersects(BoundingFrustum))
+                    {
+                        DibujarConBlinnPhong(GrassWorld,GrassModel,ActualColor,view,projection);    
+                    }
+                    
+
+                }
+            }
+
+            ActualColor= Color.Blue;
+            for (float i = 0; i < 5; i++)
+            {
+                for (float j = 0; j < 3; j++)
+                {
+                    GrassFrustum.Center = new Vector3(i * 200f, 0, j * -200f - 1000f);
+                    if (GrassFrustum.Intersects(BoundingFrustum))
+                    {
+                        GrassWorld = Matrix.CreateScale(0.4f) *
+                                     Matrix.CreateTranslation(i * 200f, 0, j * -200f - 1000f);
+                        DibujarConBlinnPhong(GrassWorld, GrassModel, ActualColor, view, projection);
+                    }
+
+                }
+                
+            }
+
+            ActualColor = Color.Black;
+            LampWorld = Matrix.CreateRotationY(MathHelper.PiOver2) * Matrix.CreateScale(0.5f) * Matrix.CreateTranslation(700f, 6f, -1900f);
+            DibujarConBlinnPhong(LampWorld,LampModel,ActualColor,view,projection);
+            DibujarConBlinnPhong(Matrix.CreateScale(0.5f)*Matrix.CreateTranslation(lightPosition),SunModel,Color.Yellow,view,projection);
+
+    }
+    
+    /*
+     private void generateLevelEnviroment(Matrix view,Matrix projection) 
         {
             Color ActualColor;
             ActualColor = Color.DarkGreen;
@@ -1834,24 +2178,10 @@ namespace TGC.MonoGame.TP
             DibujarConBlinnPhong(LampWorld,LampModel,ActualColor,view,projection);
             DibujarConBlinnPhong(Matrix.CreateScale(0.5f)*Matrix.CreateTranslation(lightPosition),SunModel,Color.Yellow,view,projection);
 
-    }
-
-    private void moverCamaraMouse()
-    {
-        SphereRotation = Matrix.CreateRotationY(Mouse.GetState().Position.ToVector2().X*MouseSensitivity);
-
-        SphereFrontDirection = Vector3.Transform(Vector3.Forward, SphereRotation);
-    }
-
-    private void chequearPropiedadesTextura(Texture2D texture){
-        if (texture == RubberTexture){
-            JumpSpeed = 200f;
-        }else if (texture == MetalTexture){
-            currentSpeed = 75f;
-        }else if (texture == RockTexture){
-            currentSpeed = 20f;
-        }
-    }
+    }*/
+    
+    
+    
     }
 
 }
