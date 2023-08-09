@@ -414,7 +414,7 @@ namespace TGC.MonoGame.TP
             FullScreenQuad = new FullScreenQuad(GraphicsDevice);
             RenderTarget = new RenderTarget2D(GraphicsDevice, ShadowmapSize, ShadowmapSize, false,
                 SurfaceFormat.Single, DepthFormat.Depth24, 0, RenderTargetUsage.PlatformContents);
-            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 64, false,
+            EnvironmentMapRenderTarget = new RenderTargetCube(GraphicsDevice, 32, false,
                 SurfaceFormat.Color, DepthFormat.Depth24, 0, RenderTargetUsage.DiscardContents);
             GraphicsDevice.BlendState = BlendState.Opaque;
             BodyModel = Content.Load<Model>(ContentFolder3D + "body/First");
